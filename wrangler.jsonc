@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oxigraph-cloudflare-webworker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "vars": {
+    // URL of the Turtle file to load into the in-memory Oxigraph store.
+    // Replace this with the URL of your own static Turtle file before
+    // deploying (see README.md).
+    "TURTLE_URL": "https://example.com/data.ttl"
+  }
+}
