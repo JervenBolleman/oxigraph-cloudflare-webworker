@@ -85,6 +85,29 @@ URL).
 npm run deploy
 ```
 
+By default this runs against whatever account `wrangler login` last
+authenticated — an OAuth grant that covers every Cloudflare product on the
+account (KV, R2, D1, routes, ...), not just what this Worker uses. This
+project has no bindings besides a plain var and no custom route, so the
+actual minimum is a single permission. To scope it down:
+
+1. At <https://dash.cloudflare.com/profile/api-tokens>, choose **Create
+   Custom Token**.
+2. Grant only **Account → Workers Scripts → Edit**, and under **Account
+   Resources** select the one specific account this Worker deploys to (not
+   "All accounts").
+3. Use that token instead of an OAuth login session:
+
+   ```sh
+   export CLOUDFLARE_API_TOKEN=<the token>
+   export CLOUDFLARE_ACCOUNT_ID=<your account id>  # only needed if wrangler can't infer a single account from the token
+   npm run deploy
+   ```
+
+If you later add a KV namespace, D1 database, R2 bucket, or a custom
+route/domain, add the matching permission group to the token — deploying
+those needs more than Workers Scripts:Edit.
+
 ## Limitations
 
 - Read-only: no SPARQL Update.
