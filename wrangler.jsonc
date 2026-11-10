@@ -4,9 +4,18 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-22",
   "vars": {
-    // URL of the Turtle file to load into the in-memory Oxigraph store.
-    // Replace this with the URL of your own static Turtle file before
-    // deploying (see README.md).
-    "TURTLE_URL": "https://example.com/data.ttl"
+    // URL of the RDF file to load into the in-memory Oxigraph store.
+    // Replace this with the URL of your own static file before deploying,
+    // or create a separate named worker with `npm run new-worker` (see
+    // README.md).
+    "DATA_URL": "https://example.com/data.ttl",
+    // Format of DATA_URL: "text/turtle" or "application/ld+json". Leave
+    // empty to go by its file extension (.ttl, .jsonld, .json, optionally
+    // followed by .gz), or for a URL without one, by the Content-Type it is
+    // served with.
+    "DATA_FORMAT": "",
+    // Accept header sent when fetching DATA_URL. Leave empty to ask for the
+    // format above.
+    "DATA_ACCEPT": ""
   }
 }

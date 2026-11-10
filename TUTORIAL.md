@@ -1,7 +1,7 @@
 # SPARQL at the edge
 
 A walkthrough of `oxigraph-cloudflare-webworker`: a Cloudflare Worker that
-fetches a Turtle file, loads it into an in-memory [Oxigraph](https://github.com/oxigraph/oxigraph)
+fetches a Turtle or JSON-LD file, loads it into an in-memory [Oxigraph](https://github.com/oxigraph/oxigraph)
 store compiled to WebAssembly, and serves it as a read-only SPARQL 1.1
 endpoint — no origin server, no database, just a static file and an edge
 isolate. Every response and command below was captured from a real local run
@@ -19,7 +19,7 @@ touch the code:
   `WebAssembly.Module` automatically — and hands it to `initSync()`, so
   there's no wasm fetch at request time.
 - **The store is loaded once per isolate.** The first request a Worker
-  isolate handles fetches `env.TURTLE_URL`, parses it as Turtle, and caches
+  isolate handles fetches `env.DATA_URL`, parses it (Turtle or JSON-LD), and caches
   the resulting `Store` at module scope. Every later request that isolate
   handles reuses it. A failed fetch is *not* cached, so a transient network
   error doesn't permanently break that isolate.
@@ -32,7 +32,7 @@ flowchart LR
     client([Client<br/>browser / curl]) -->|GET/POST /sparql| handler[Worker handler]
     handler --> decision{Store cached<br/>for this isolate?}
     decision -->|yes — warm isolate| cached[Reuse cached Store]
-    decision -->|no — cold start| cold["fetch(TURTLE_URL)<br/>parse → new Store()<br/>cache at module scope"]
+    decision -->|no — cold start| cold["fetch(DATA_URL)<br/>parse → new Store()<br/>cache at module scope"]
     cached --> response([Response<br/>negotiated format])
     cold --> response
 ```
@@ -49,16 +49,22 @@ Clone the repo, then install dependencies:
 npm install
 ```
 
-Open `wrangler.jsonc` and point `vars.TURTLE_URL` at your own Turtle file —
-it ships pointing at a placeholder:
+Open `wrangler.jsonc` and point `vars.DATA_URL` at your own Turtle or
+JSON-LD file, optionally gzipped. The format and the `Accept` header sent for
+it follow the file extension unless you set `DATA_FORMAT` or `DATA_ACCEPT`
+(see the README). It ships pointing at a placeholder Turtle file:
 
 ```jsonc
 {
   "name": "oxigraph-cloudflare-webworker",
   "main": "src/index.ts",
   "vars": {
-    // Replace with the URL of your own static Turtle file
-    "TURTLE_URL": "https://example.com/data.ttl"
+    // Replace with the URL of your own static data file
+    "DATA_URL": "https://example.com/data.ttl",
+    // Empty: go by the file extension. Or "text/turtle", "application/ld+json"
+    "DATA_FORMAT": "",
+    // Empty: ask for that format
+    "DATA_ACCEPT": ""
   }
 }
 ```
@@ -86,11 +92,12 @@ it's ready:
 [wrangler:info] Ready on http://localhost:8787
 ```
 
-> **Tip:** To point a local run at a different Turtle file without editing
+> **Tip:** To point a local run at a different data file without editing
 > `wrangler.jsonc`, pass `--var` instead:
-> `npx wrangler dev --var TURTLE_URL:http://localhost:8793/sample.ttl`. That's
-> exactly how the screenshots below were produced — against a small local
-> Turtle file describing two people and two books.
+> `npx wrangler dev --var DATA_URL:http://localhost:8793/sample.ttl`. That's
+> how the screenshots below were produced — against a small local Turtle
+> file describing two people and two books. A `.jsonld` file works the same
+> way.
 
 ## Query it
 
@@ -159,7 +166,8 @@ The worker responds with plain-text errors and ordinary HTTP status codes:
 
 - `400` — no `query` was given, or the SPARQL failed to parse.
 - `404` — any path other than `/sparql`.
-- `502` — `TURTLE_URL` couldn't be fetched (bad URL, origin down, etc.).
+- `502` — `DATA_URL`, or a remote JSON-LD context it uses, couldn't be
+  fetched or parsed (bad URL, origin down, etc.).
 
 ![Browser window showing the plain-text 404 response: Not found. Try /sparql?query=...](images/error-404.jpg)
 
@@ -171,8 +179,8 @@ endpoint at all (`Access-Control-Allow-Origin: *` is set on every response).
 
 The test suite runs the real Workers runtime via
 [`@cloudflare/vitest-pool-workers`](https://developers.cloudflare.com/workers/testing/vitest-integration/)
-— no network access needed, since the fixture Turtle data is loaded from a
-`data:` URL instead of a real `TURTLE_URL`:
+— no network access needed, since the fixture data is loaded from `data:`
+URLs instead of a real `DATA_URL`:
 
 ```sh
 npm test
@@ -180,7 +188,7 @@ npm test
 
 It covers SELECT as JSON, ASK, POST with an `application/sparql-query` body,
 CONSTRUCT as Turtle, and the 400/404 error paths — the same requests this
-tutorial just made by hand.
+tutorial just made by hand — plus loading JSON-LD with a remote `@context`.
 
 ## Deploy
 
@@ -222,17 +230,33 @@ Adding a KV namespace, D1 database, R2 bucket, or a custom route later means
 adding the matching permission group to the token — `Workers Scripts:Edit`
 alone won't cover those.
 
-> **Tip:** `TURTLE_URL` can also be changed directly from the dashboard,
+> **Tip:** `DATA_URL` can also be changed directly from the dashboard,
 > without redeploying from your machine — under the worker's **Settings →
 > Variables and secrets**, edit the value and save. That publishes a new
 > version immediately.
 
 ![Cloudflare dashboard Settings page showing the Runtime variables and secrets table with a Text variable named TURTLE_URL](images/cf-worker-settings-variables.png)
 
+*This screenshot predates the rename of `TURTLE_URL` to `DATA_URL`; a
+current deployment lists `DATA_URL`, `DATA_FORMAT` and `DATA_ACCEPT`
+instead.*
+
+## More endpoints from one codebase
+
+To serve another dataset, create a separately named Worker in one step:
+
+```sh
+npm run new-worker -- people https://example.org/people.jsonld
+```
+
+That writes `workers/people.jsonc` (this repo's code, with its own name and
+data URL) and deploys it, which creates the Worker on Cloudflare. See the
+README for the options.
+
 ## Limitations
 
 - **Read-only.** No SPARQL Update — by design, not as a missing feature.
-- **One dataset per worker, fixed at `TURTLE_URL`.** It isn't re-fetched
+- **One dataset per worker, fixed at `DATA_URL`.** It isn't re-fetched
   once an isolate has loaded it; updating the source data means redeploying
   or waiting for isolates to recycle.
 - **CORS is wide open.** `Access-Control-Allow-Origin: *`, matching how most

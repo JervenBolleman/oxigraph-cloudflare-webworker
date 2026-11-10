@@ -8,7 +8,8 @@ const TURTLE = `
 `;
 
 const TEST_ENV = {
-  TURTLE_URL: `data:text/turtle,${encodeURIComponent(TURTLE)}`,
+  DATA_URL: `data:text/turtle,${encodeURIComponent(TURTLE)}`,
+  DATA_FORMAT: "text/turtle",
 } as unknown as Env;
 
 async function callWorker(request: Request): Promise<Response> {

@@ -31,7 +31,11 @@ const handler: ExportedHandler<Env> = {
 
     let store;
     try {
-      store = await getStore(env.TURTLE_URL);
+      store = await getStore({
+        url: env.DATA_URL,
+        format: env.DATA_FORMAT || undefined,
+        accept: env.DATA_ACCEPT || undefined,
+      });
     } catch (error) {
       return new Response(`Failed to load the RDF dataset: ${message(error)}\n`, {
         status: 502,
