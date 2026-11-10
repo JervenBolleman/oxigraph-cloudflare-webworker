@@ -10,37 +10,42 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import FORMAT_LIST from "../src/formats.json" with { type: "json" };
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WORKERS_DIR = join(ROOT, "workers");
 
-const FORMATS = {
-  turtle: "text/turtle",
-  ttl: "text/turtle",
-  "text/turtle": "text/turtle",
-  jsonld: "application/ld+json",
-  "json-ld": "application/ld+json",
-  "application/ld+json": "application/ld+json",
-  rdfxml: "application/rdf+xml",
-  "rdf/xml": "application/rdf+xml",
-  "application/rdf+xml": "application/rdf+xml",
-};
+// --format accepts a format's name, any of its file extensions or aliases,
+// or its media type: turtle, ttl and text/turtle all mean Turtle.
+const FORMATS = new Map(
+  FORMAT_LIST.flatMap((format) =>
+    [format.name, ...format.extensions, ...format.aliases, format.mediaType].map((key) => [
+      key,
+      format.mediaType,
+    ]),
+  ),
+);
+const FORMAT_NAMES = FORMAT_LIST.map((format) => format.name);
+const EXTENSIONS = FORMAT_LIST.flatMap((format) => format.extensions);
+const EXTENSION_LIST = EXTENSIONS.map((extension) => `.${extension}`).join(", ");
+const MEDIA_TYPES = FORMAT_LIST.map((format) => format.mediaType).join(", ");
 
 const USAGE = `Usage: npm run new-worker -- <name> <data-url> [options]
 
 Creates workers/<name>.jsonc and deploys it as a Worker named <name>.
 
   <name>       Worker name: lowercase letters, digits and dashes
-  <data-url>   URL of the Turtle, JSON-LD or RDF/XML file to serve,
-               optionally gzipped
+  <data-url>   URL of the RDF file to serve, optionally gzipped
 
 Options:
-  --format <turtle|jsonld|rdfxml>
-                            Format of <data-url>. Default: by its file
-                            extension (.ttl, .jsonld, .json, .rdf, .owl,
-                            optionally followed by .gz), or for a URL
-                            without one, by the Content-Type it is served
-                            with
+  --format <format>         Format of <data-url>, one of
+                              ${FORMAT_NAMES.join(", ")}
+                            or a file extension or media type for one.
+                            Default: by the file extension, optionally
+                            followed by .gz:
+                              ${EXTENSION_LIST}
+                            or for a URL without one, by the Content-Type
+                            it is served with
   --accept <header>         Accept header to send when fetching <data-url>.
                             Default: asks for the format above
   --no-deploy               Only write the config, don't deploy
@@ -102,17 +107,19 @@ if (url.protocol !== "https:" && url.protocol !== "http:") {
 let dataFormat = "";
 let formatSource = "from the file extension";
 if (values.format !== undefined) {
-  dataFormat = FORMATS[values.format.toLowerCase()];
+  dataFormat = FORMATS.get(values.format.toLowerCase());
   if (!dataFormat) {
-    fail(`unknown format ${JSON.stringify(values.format)}: use turtle, jsonld or rdfxml`);
+    fail(`unknown format ${JSON.stringify(values.format)}: use one of ${FORMAT_NAMES.join(", ")}`);
   }
-} else if (!/\.(ttl|jsonld|json|rdf|owl)(\.gz)?$/i.test(url.pathname)) {
-  formatSource = "from the Content-Type it is served with";
-  console.warn(
-    `warning: ${url.href} has no .ttl/.jsonld/.json/.rdf/.owl extension, so the Worker will go by ` +
-      `the Content-Type it is served with. Pass --format if that isn't text/turtle, ` +
-      `application/ld+json or application/rdf+xml.`,
-  );
+} else {
+  const extension = url.pathname.toLowerCase().replace(/\.gz$/, "").match(/\.([a-z0-9]+)$/)?.[1];
+  if (!EXTENSIONS.includes(extension)) {
+    formatSource = "from the Content-Type it is served with";
+    console.warn(
+      `warning: ${url.href} has no known RDF file extension, so the Worker will go by the ` +
+        `Content-Type it is served with. Pass --format if that isn't one of ${MEDIA_TYPES}.`,
+    );
+  }
 }
 
 const configPath = join(WORKERS_DIR, `${name}.jsonc`);

@@ -1,5 +1,6 @@
 import { initSync, Store } from "oxigraph/web.js";
 import wasmModule from "oxigraph/web_bg.wasm";
+import formats from "./formats.json";
 import { inlineRemoteContexts } from "./jsonld-contexts";
 
 // The wasm-bindgen "web" build normally fetches its .wasm file relative to
@@ -9,20 +10,23 @@ import { inlineRemoteContexts } from "./jsonld-contexts";
 // skip that fetch entirely.
 initSync({ module: wasmModule });
 
+// Every RDF format Oxigraph parses, as listed in src/formats.json (which
+// scripts/new-worker.mjs reads too). Most .owl files are RDF/XML; the rarer
+// OWL/XML syntax (application/owl+xml) isn't RDF, and Oxigraph can't read it.
+export const DATA_FORMATS = formats.map((format) => format.mediaType);
 export const TURTLE = "text/turtle";
 export const JSON_LD = "application/ld+json";
-export const RDF_XML = "application/rdf+xml";
-export const DATA_FORMATS = [TURTLE, JSON_LD, RDF_XML];
 
-const FORMATS_BY_EXTENSION: Record<string, string> = {
-  ttl: TURTLE,
-  jsonld: JSON_LD,
-  json: JSON_LD,
-  rdf: RDF_XML,
-  // Most .owl files are RDF/XML. The rarer OWL/XML syntax
-  // (application/owl+xml) is a different format Oxigraph can't read.
-  owl: RDF_XML,
-};
+const FORMATS_BY_EXTENSION = new Map(
+  formats.flatMap((format) => format.extensions.map((extension) => [extension, format.mediaType])),
+);
+
+// For a URL whose format isn't known up front: every format, in the order of
+// src/formats.json, each slightly less preferred than the one before.
+const ANY_FORMAT_ACCEPT = [
+  ...DATA_FORMATS.map((type, i) => (i === 0 ? type : `${type};q=${(1 - i / 10).toFixed(1)}`)),
+  "*/*;q=0.1",
+].join(", ");
 
 export interface DataSource {
   url: string;
@@ -67,7 +71,7 @@ export function formatFromUrl(url: string): string | undefined {
     return undefined;
   }
   const extension = path.replace(/\.gz$/, "").match(/\.([a-z0-9]+)$/)?.[1];
-  return extension ? FORMATS_BY_EXTENSION[extension] : undefined;
+  return extension ? FORMATS_BY_EXTENSION.get(extension) : undefined;
 }
 
 async function loadStore({ url, format, accept }: DataSource): Promise<Store> {
@@ -77,9 +81,7 @@ async function loadStore({ url, format, accept }: DataSource): Promise<Store> {
     );
   }
   const expected = format ?? formatFromUrl(url);
-  const defaultAccept = expected
-    ? `${expected}, */*;q=0.1`
-    : `${TURTLE}, ${JSON_LD};q=0.9, ${RDF_XML};q=0.8, */*;q=0.1`;
+  const defaultAccept = expected ? `${expected}, */*;q=0.1` : ANY_FORMAT_ACCEPT;
 
   const response = await fetch(url, { headers: { Accept: accept ?? defaultAccept } });
   if (!response.ok) {
@@ -92,7 +94,7 @@ async function loadStore({ url, format, accept }: DataSource): Promise<Store> {
   const resolved = expected ?? (served && DATA_FORMATS.includes(served) ? served : undefined);
   if (!resolved) {
     throw new Error(
-      `Can't tell the RDF format of ${url}: no .ttl/.jsonld/.json/.rdf/.owl extension, and it was served as ` +
+      `Can't tell the RDF format of ${url}: no known RDF file extension, and it was served as ` +
         `${served ?? "no content type"}. Set DATA_FORMAT to one of ${DATA_FORMATS.join(", ")}`,
     );
   }
@@ -108,9 +110,9 @@ async function loadStore({ url, format, accept }: DataSource): Promise<Store> {
 }
 
 // fetch() already undoes `Content-Encoding: gzip`. This handles the other
-// case: a file that is itself gzipped (data.ttl.gz), served as-is. No Turtle,
-// JSON or XML document can start with gzip's magic bytes, so sniffing them is
-// safe whatever the Content-Type says.
+// case: a file that is itself gzipped (data.ttl.gz), served as-is. No
+// document in any of these text formats can start with gzip's magic bytes,
+// so sniffing them is safe whatever the Content-Type says.
 async function readText(response: Response): Promise<string> {
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (bytes[0] === 0x1f && bytes[1] === 0x8b) {

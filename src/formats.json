@@ -1,0 +1,9 @@
+[
+  { "name": "turtle", "mediaType": "text/turtle", "extensions": ["ttl"], "aliases": [] },
+  { "name": "jsonld", "mediaType": "application/ld+json", "extensions": ["jsonld", "json"], "aliases": ["json-ld"] },
+  { "name": "rdfxml", "mediaType": "application/rdf+xml", "extensions": ["rdf", "owl"], "aliases": ["rdf/xml"] },
+  { "name": "ntriples", "mediaType": "application/n-triples", "extensions": ["nt"], "aliases": ["n-triples"] },
+  { "name": "nquads", "mediaType": "application/n-quads", "extensions": ["nq"], "aliases": ["n-quads"] },
+  { "name": "trig", "mediaType": "application/trig", "extensions": ["trig"], "aliases": [] },
+  { "name": "n3", "mediaType": "text/n3", "extensions": ["n3"], "aliases": [] }
+]

@@ -1,7 +1,8 @@
 # oxigraph-cloudflare-webworker
 
 A [Cloudflare Worker](https://developers.cloudflare.com/workers/) that fetches
-a small Turtle, JSON-LD or RDF/XML file from a static website, loads it into an in-memory
+a small RDF file (any format Oxigraph reads, such as Turtle, JSON-LD, RDF/XML
+or N-Triples) from a static website, loads it into an in-memory
 [Oxigraph](https://github.com/oxigraph/oxigraph) store (compiled to
 WebAssembly), and serves it as a read-only SPARQL 1.1 query endpoint at the
 edge.
@@ -18,8 +19,8 @@ npm run new-worker -- <name> <data-url>
 ```
 
 The Worker goes live at `https://<name>.<your-subdomain>.workers.dev/sparql`.
-The format comes from the file extension (`.ttl`, `.jsonld`, `.json`,
-`.rdf`, `.owl`, optionally gzipped) unless you say otherwise.
+The format comes from the file extension (`.ttl`, `.nt`, `.jsonld`, `.rdf`,
+`.owl` and [more](#data-file), optionally gzipped) unless you say otherwise.
 
 Some examples:
 
@@ -32,6 +33,9 @@ npm run new-worker -- people https://example.org/data/people.jsonld.gz
 
 # An OWL ontology in RDF/XML
 npm run new-worker -- onto https://example.org/ontology/core.owl
+
+# A gzipped N-Triples dump
+npm run new-worker -- dump https://example.org/data/dump.nt.gz
 
 # A content-negotiated URL without an extension: set the format and the
 # Accept header to request explicitly
@@ -69,7 +73,7 @@ explains how it works, the [data file settings](#data-file), and
   automatically — and passes it to `initSync()`, so no fetch of the wasm
   binary itself is needed.
 - On the first request a Worker isolate handles, `src/store.ts` fetches
-  `env.DATA_URL`, parses it as Turtle, JSON-LD or RDF/XML (see
+  `env.DATA_URL`, parses it in whichever RDF format it's in (see
   [Data file](#data-file)), and loads it into a new `Store`. That
   store is then cached at module scope and reused for every later request the
   same isolate handles (an isolate can be reused for many requests, but isn't
@@ -110,21 +114,40 @@ required:
 | Var           | Default                                                    | Override with                                    |
 | ------------- | ---------------------------------------------------------- | ------------------------------------------------ |
 | `DATA_URL`    | none                                                       | the file's URL                                   |
-| `DATA_FORMAT` | from the extension: `.ttl` is Turtle, `.jsonld` and `.json` are JSON-LD, `.rdf` and `.owl` are RDF/XML | `text/turtle`, `application/ld+json` or `application/rdf+xml` |
+| `DATA_FORMAT` | from the file extension, see below                        | a media type from the table below                |
 | `DATA_ACCEPT` | asks for the format, e.g. `text/turtle, */*;q=0.1`        | any `Accept` header value                        |
+
+Every format Oxigraph parses is supported. The list lives in
+`src/formats.json`, which the Worker and `npm run new-worker` both read:
+
+| Format    | Extensions        | Media type (`DATA_FORMAT`) | `--format` |
+| --------- | ----------------- | -------------------------- | ---------- |
+| Turtle    | `.ttl`            | `text/turtle`              | `turtle`   |
+| JSON-LD   | `.jsonld`, `.json`| `application/ld+json`      | `jsonld`   |
+| RDF/XML   | `.rdf`, `.owl`    | `application/rdf+xml`      | `rdfxml`   |
+| N-Triples | `.nt`             | `application/n-triples`    | `ntriples` |
+| N-Quads   | `.nq`             | `application/n-quads`      | `nquads`   |
+| TriG      | `.trig`           | `application/trig`         | `trig`     |
+| N3        | `.n3`             | `text/n3`                  | `n3`       |
+
+`--format` also takes a file extension or the media type, so `--format nt`
+and `--format application/n-triples` both mean N-Triples.
 
 - A trailing `.gz` is looked through, so `data.ttl.gz` is Turtle.
 - A URL without one of those extensions, typically a content-negotiated one
   like a `w3id.org` or PURL redirect, is parsed according to the
-  `Content-Type` it is served with. If that isn't `text/turtle`,
-  `application/ld+json` or `application/rdf+xml` either, loading fails with
-  a `502` asking you to set `DATA_FORMAT`. Without a known format, the
-  default `Accept` asks for Turtle first, then JSON-LD, then RDF/XML.
+  `Content-Type` it is served with. If that isn't one of the media types
+  above either, loading fails with a `502` asking you to set `DATA_FORMAT`.
+  Without a known format, the default `Accept` lists every format, in the
+  order of the table, each with a slightly lower preference.
 - `.owl` is read as RDF/XML because that's what nearly all `.owl` files
   are, including Protégé's default output (DTD entities and `xml:base` work).
   An `.owl` file in Turtle needs `DATA_FORMAT` set to `text/turtle`. The
   separate OWL/XML syntax (`application/owl+xml`) isn't RDF, and Oxigraph
   can't read it.
+- Named graphs in N-Quads, TriG or JSON-LD data stay named graphs. SPARQL
+  queries see only the default graph unless they use `GRAPH`, so a plain
+  `SELECT * WHERE { ?s ?p ?o }` won't return them.
 - Set `DATA_ACCEPT` when a server needs something else to return RDF, for
   example a stricter header without the `*/*` fallback.
 
@@ -177,8 +200,8 @@ endpoint shares the same code, so a code change reaches all of them on their
 next deploy.
 
 - The format and `Accept` header follow the [defaults](#data-file), going
-  by the file extension. Override them with `--format turtle`,
-  `--format jsonld` or `--format rdfxml`, and `--accept '<header>'`. For a URL without a known
+  by the file extension. Override them with `--format <format>` (e.g.
+  `--format ntriples`) and `--accept '<header>'`. For a URL without a known
   extension, the command warns that the format will come from the served
   `Content-Type`.
 - `--no-deploy` only writes the config. Try it locally with
@@ -226,8 +249,8 @@ remote JSON-LD context, are loaded from `data:` URLs).
 `Link` header alternates, relative URLs, `@import`, scoped contexts and
 cycles. `test/data-source.spec.ts` covers how the data file is fetched and
 read: the format from the file extension or `Content-Type`, the
-`DATA_FORMAT` and `DATA_ACCEPT` overrides, the `Accept` header sent, RDF/XML,
-and gzipped files.
+`DATA_FORMAT` and `DATA_ACCEPT` overrides, the `Accept` header sent,
+loading every supported format, named graphs, and gzipped files.
 
 ## Deploy
 

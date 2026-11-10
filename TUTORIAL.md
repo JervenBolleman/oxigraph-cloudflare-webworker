@@ -1,7 +1,7 @@
 # SPARQL at the edge
 
 A walkthrough of `oxigraph-cloudflare-webworker`: a Cloudflare Worker that
-fetches a Turtle, JSON-LD or RDF/XML file, loads it into an in-memory [Oxigraph](https://github.com/oxigraph/oxigraph)
+fetches an RDF file (Turtle, JSON-LD, RDF/XML and more), loads it into an in-memory [Oxigraph](https://github.com/oxigraph/oxigraph)
 store compiled to WebAssembly, and serves it as a read-only SPARQL 1.1
 endpoint — no origin server, no database, just a static file and an edge
 isolate. Every response and command below was captured from a real local run
@@ -49,8 +49,9 @@ Clone the repo, then install dependencies:
 npm install
 ```
 
-Open `wrangler.jsonc` and point `vars.DATA_URL` at your own Turtle,
-JSON-LD or RDF/XML file, optionally gzipped. The format and the `Accept` header sent for
+Open `wrangler.jsonc` and point `vars.DATA_URL` at your own RDF file
+(Turtle, JSON-LD, RDF/XML, N-Triples, N-Quads, TriG or N3), optionally
+gzipped. The format and the `Accept` header sent for
 it follow the file extension unless you set `DATA_FORMAT` or `DATA_ACCEPT`
 (see the README). It ships pointing at a placeholder Turtle file:
 
@@ -61,8 +62,8 @@ it follow the file extension unless you set `DATA_FORMAT` or `DATA_ACCEPT`
   "vars": {
     // Replace with the URL of your own static data file
     "DATA_URL": "https://example.com/data.ttl",
-    // Empty: go by the file extension. Or "text/turtle",
-    // "application/ld+json", "application/rdf+xml"
+    // Empty: go by the file extension. Or a media type such as
+    // "text/turtle" or "application/n-triples"
     "DATA_FORMAT": "",
     // Empty: ask for that format
     "DATA_ACCEPT": ""

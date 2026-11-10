@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatFromUrl, getStore, JSON_LD, RDF_XML, TURTLE } from "../src/store";
+import formats from "../src/formats.json";
+import { DATA_FORMATS, formatFromUrl, getStore, JSON_LD, TURTLE } from "../src/store";
+
+const RDF_XML = "application/rdf+xml";
 
 const TURTLE_DATA = '<https://example.org/alice> <https://schema.org/name> "Alice" .\n';
 const JSON_LD_DATA = JSON.stringify({ "@id": "https://example.org/alice", "https://schema.org/name": "Alice" });
@@ -51,6 +54,10 @@ describe("formatFromUrl", () => {
     ["https://x.example/data.rdf", RDF_XML],
     ["https://x.example/onto.owl", RDF_XML],
     ["https://x.example/onto.owl.gz", RDF_XML],
+    ["https://x.example/data.nt", "application/n-triples"],
+    ["https://x.example/data.nq.gz", "application/n-quads"],
+    ["https://x.example/data.trig", "application/trig"],
+    ["https://x.example/data.n3", "text/n3"],
     ["https://x.example/data", undefined],
     ["https://x.example/data.gz", undefined],
     ["https://x.example/data.csv", undefined],
@@ -86,7 +93,8 @@ describe("loading the data file", () => {
 
     expect(await names("https://x.example/negotiated")).toEqual(["Alice"]);
     expect(requests[0].headers.get("Accept")).toBe(
-      "text/turtle, application/ld+json;q=0.9, application/rdf+xml;q=0.8, */*;q=0.1",
+      "text/turtle, application/ld+json;q=0.9, application/rdf+xml;q=0.8, application/n-triples;q=0.7, " +
+        "application/n-quads;q=0.6, application/trig;q=0.5, text/n3;q=0.4, */*;q=0.1",
     );
   });
 
@@ -107,6 +115,37 @@ describe("loading the data file", () => {
     serve(RDF_XML_DATA, { "Content-Type": "application/rdf+xml" });
 
     expect(await names("https://x.example/negotiated-xml")).toEqual(["Alice"]);
+  });
+
+  // The same statement in every format Oxigraph parses, each loaded by
+  // extension alone.
+  it.each([
+    ["ttl", TURTLE_DATA],
+    ["jsonld", JSON_LD_DATA],
+    ["rdf", RDF_XML_DATA],
+    ["nt", TURTLE_DATA],
+    ["nq", TURTLE_DATA],
+    ["trig", "{ " + TURTLE_DATA + " }"],
+    ["n3", TURTLE_DATA],
+  ])("loads a .%s file", async (extension, data) => {
+    serve(data, { "Content-Type": "application/octet-stream" });
+
+    expect(await names(`https://x.example/every-format.${extension}`)).toEqual(["Alice"]);
+  });
+
+  it("knows a file extension for every format", () => {
+    const byExtension = formats.flatMap((format) =>
+      format.extensions.map((extension) => formatFromUrl(`https://x.example/data.${extension}`)),
+    );
+    expect(new Set(byExtension)).toEqual(new Set(DATA_FORMATS));
+  });
+
+  it("keeps named graphs from quad formats, outside the default graph", async () => {
+    serve('<https://example.org/alice> <https://schema.org/name> "Alice" <https://example.org/g> .\n');
+
+    const store = await getStore({ url: "https://x.example/graphs.nq" });
+    expect(store.query("ASK { ?s ?p ?o }")).toBe(false);
+    expect(store.query("ASK { GRAPH <https://example.org/g> { ?s ?p ?o } }")).toBe(true);
   });
 
   it("explains how to fix a format it can't determine", async () => {
