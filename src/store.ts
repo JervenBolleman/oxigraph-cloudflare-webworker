@@ -11,12 +11,17 @@ initSync({ module: wasmModule });
 
 export const TURTLE = "text/turtle";
 export const JSON_LD = "application/ld+json";
-export const DATA_FORMATS = [TURTLE, JSON_LD];
+export const RDF_XML = "application/rdf+xml";
+export const DATA_FORMATS = [TURTLE, JSON_LD, RDF_XML];
 
 const FORMATS_BY_EXTENSION: Record<string, string> = {
   ttl: TURTLE,
   jsonld: JSON_LD,
   json: JSON_LD,
+  rdf: RDF_XML,
+  // Most .owl files are RDF/XML. The rarer OWL/XML syntax
+  // (application/owl+xml) is a different format Oxigraph can't read.
+  owl: RDF_XML,
 };
 
 export interface DataSource {
@@ -74,7 +79,7 @@ async function loadStore({ url, format, accept }: DataSource): Promise<Store> {
   const expected = format ?? formatFromUrl(url);
   const defaultAccept = expected
     ? `${expected}, */*;q=0.1`
-    : `${TURTLE}, ${JSON_LD};q=0.9, */*;q=0.1`;
+    : `${TURTLE}, ${JSON_LD};q=0.9, ${RDF_XML};q=0.8, */*;q=0.1`;
 
   const response = await fetch(url, { headers: { Accept: accept ?? defaultAccept } });
   if (!response.ok) {
@@ -87,7 +92,7 @@ async function loadStore({ url, format, accept }: DataSource): Promise<Store> {
   const resolved = expected ?? (served && DATA_FORMATS.includes(served) ? served : undefined);
   if (!resolved) {
     throw new Error(
-      `Can't tell the RDF format of ${url}: no .ttl/.jsonld/.json extension, and it was served as ` +
+      `Can't tell the RDF format of ${url}: no .ttl/.jsonld/.json/.rdf/.owl extension, and it was served as ` +
         `${served ?? "no content type"}. Set DATA_FORMAT to one of ${DATA_FORMATS.join(", ")}`,
     );
   }
@@ -103,8 +108,8 @@ async function loadStore({ url, format, accept }: DataSource): Promise<Store> {
 }
 
 // fetch() already undoes `Content-Encoding: gzip`. This handles the other
-// case: a file that is itself gzipped (data.ttl.gz), served as-is. No Turtle
-// or JSON document can start with gzip's magic bytes, so sniffing them is
+// case: a file that is itself gzipped (data.ttl.gz), served as-is. No Turtle,
+// JSON or XML document can start with gzip's magic bytes, so sniffing them is
 // safe whatever the Content-Type says.
 async function readText(response: Response): Promise<string> {
   const bytes = new Uint8Array(await response.arrayBuffer());

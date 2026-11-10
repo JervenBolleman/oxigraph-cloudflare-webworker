@@ -3,7 +3,7 @@
 // writes workers/<name>.jsonc (sharing this repo's src/) and deploys it,
 // which is what creates the Worker on Cloudflare.
 //
-//   npm run new-worker -- <name> <data-url> [--format turtle|jsonld] [--accept <header>] [--no-deploy] [--force]
+//   npm run new-worker -- <name> <data-url> [--format turtle|jsonld|rdfxml] [--accept <header>] [--no-deploy] [--force]
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -21,6 +21,9 @@ const FORMATS = {
   jsonld: "application/ld+json",
   "json-ld": "application/ld+json",
   "application/ld+json": "application/ld+json",
+  rdfxml: "application/rdf+xml",
+  "rdf/xml": "application/rdf+xml",
+  "application/rdf+xml": "application/rdf+xml",
 };
 
 const USAGE = `Usage: npm run new-worker -- <name> <data-url> [options]
@@ -28,13 +31,16 @@ const USAGE = `Usage: npm run new-worker -- <name> <data-url> [options]
 Creates workers/<name>.jsonc and deploys it as a Worker named <name>.
 
   <name>       Worker name: lowercase letters, digits and dashes
-  <data-url>   URL of the Turtle or JSON-LD file to serve, optionally gzipped
+  <data-url>   URL of the Turtle, JSON-LD or RDF/XML file to serve,
+               optionally gzipped
 
 Options:
-  --format <turtle|jsonld>  Format of <data-url>. Default: by its file
-                            extension (.ttl, .jsonld, .json, optionally
-                            followed by .gz), or for a URL without one, by
-                            the Content-Type it is served with
+  --format <turtle|jsonld|rdfxml>
+                            Format of <data-url>. Default: by its file
+                            extension (.ttl, .jsonld, .json, .rdf, .owl,
+                            optionally followed by .gz), or for a URL
+                            without one, by the Content-Type it is served
+                            with
   --accept <header>         Accept header to send when fetching <data-url>.
                             Default: asks for the format above
   --no-deploy               Only write the config, don't deploy
@@ -98,13 +104,14 @@ let formatSource = "from the file extension";
 if (values.format !== undefined) {
   dataFormat = FORMATS[values.format.toLowerCase()];
   if (!dataFormat) {
-    fail(`unknown format ${JSON.stringify(values.format)}: use turtle or jsonld`);
+    fail(`unknown format ${JSON.stringify(values.format)}: use turtle, jsonld or rdfxml`);
   }
-} else if (!/\.(ttl|jsonld|json)(\.gz)?$/i.test(url.pathname)) {
+} else if (!/\.(ttl|jsonld|json|rdf|owl)(\.gz)?$/i.test(url.pathname)) {
   formatSource = "from the Content-Type it is served with";
   console.warn(
-    `warning: ${url.href} has no .ttl/.jsonld/.json extension, so the Worker will go by the ` +
-      `Content-Type it is served with. Pass --format if that isn't text/turtle or application/ld+json.`,
+    `warning: ${url.href} has no .ttl/.jsonld/.json/.rdf/.owl extension, so the Worker will go by ` +
+      `the Content-Type it is served with. Pass --format if that isn't text/turtle, ` +
+      `application/ld+json or application/rdf+xml.`,
   );
 }
 

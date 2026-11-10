@@ -1,8 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatFromUrl, getStore, JSON_LD, TURTLE } from "../src/store";
+import { formatFromUrl, getStore, JSON_LD, RDF_XML, TURTLE } from "../src/store";
 
 const TURTLE_DATA = '<https://example.org/alice> <https://schema.org/name> "Alice" .\n';
 const JSON_LD_DATA = JSON.stringify({ "@id": "https://example.org/alice", "https://schema.org/name": "Alice" });
+// The shape OWL tools such as Protégé write: DTD entities and xml:base.
+const RDF_XML_DATA = `<?xml version="1.0"?>
+<!DOCTYPE rdf:RDF [ <!ENTITY ex "https://example.org/" > ]>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:schema="https://schema.org/" xml:base="https://example.org/">
+  <rdf:Description rdf:about="&ex;alice"><schema:name>Alice</schema:name></rdf:Description>
+</rdf:RDF>
+`;
 
 // Stubs the global fetch with one fixed response, recording the requests.
 function serve(body: BodyInit, headers: Record<string, string> = {}) {
@@ -40,6 +48,9 @@ describe("formatFromUrl", () => {
     ["https://x.example/data.ttl.gz", TURTLE],
     ["https://x.example/DATA.JSONLD.GZ", JSON_LD],
     ["https://x.example/data.ttl?version=2#top", TURTLE],
+    ["https://x.example/data.rdf", RDF_XML],
+    ["https://x.example/onto.owl", RDF_XML],
+    ["https://x.example/onto.owl.gz", RDF_XML],
     ["https://x.example/data", undefined],
     ["https://x.example/data.gz", undefined],
     ["https://x.example/data.csv", undefined],
@@ -74,7 +85,28 @@ describe("loading the data file", () => {
     const requests = serve(JSON_LD_DATA, { "Content-Type": "application/ld+json; charset=utf-8" });
 
     expect(await names("https://x.example/negotiated")).toEqual(["Alice"]);
-    expect(requests[0].headers.get("Accept")).toBe("text/turtle, application/ld+json;q=0.9, */*;q=0.1");
+    expect(requests[0].headers.get("Accept")).toBe(
+      "text/turtle, application/ld+json;q=0.9, application/rdf+xml;q=0.8, */*;q=0.1",
+    );
+  });
+
+  it("reads an .owl file as RDF/XML and asks for RDF/XML", async () => {
+    const requests = serve(RDF_XML_DATA, { "Content-Type": "application/xml" });
+
+    expect(await names("https://x.example/onto.owl")).toEqual(["Alice"]);
+    expect(requests[0].headers.get("Accept")).toBe("application/rdf+xml, */*;q=0.1");
+  });
+
+  it("decompresses a gzipped .rdf file served as-is", async () => {
+    serve(await gzip(RDF_XML_DATA), { "Content-Type": "application/gzip" });
+
+    expect(await names("https://x.example/g.rdf.gz")).toEqual(["Alice"]);
+  });
+
+  it("uses an application/rdf+xml Content-Type for a URL without an extension", async () => {
+    serve(RDF_XML_DATA, { "Content-Type": "application/rdf+xml" });
+
+    expect(await names("https://x.example/negotiated-xml")).toEqual(["Alice"]);
   });
 
   it("explains how to fix a format it can't determine", async () => {

@@ -1,7 +1,7 @@
 # oxigraph-cloudflare-webworker
 
 A [Cloudflare Worker](https://developers.cloudflare.com/workers/) that fetches
-a small Turtle or JSON-LD file from a static website, loads it into an in-memory
+a small Turtle, JSON-LD or RDF/XML file from a static website, loads it into an in-memory
 [Oxigraph](https://github.com/oxigraph/oxigraph) store (compiled to
 WebAssembly), and serves it as a read-only SPARQL 1.1 query endpoint at the
 edge.
@@ -19,7 +19,7 @@ npm run new-worker -- <name> <data-url>
 
 The Worker goes live at `https://<name>.<your-subdomain>.workers.dev/sparql`.
 The format comes from the file extension (`.ttl`, `.jsonld`, `.json`,
-optionally gzipped) unless you say otherwise.
+`.rdf`, `.owl`, optionally gzipped) unless you say otherwise.
 
 Some examples:
 
@@ -29,6 +29,9 @@ npm run new-worker -- books https://example.org/data/books.ttl
 
 # A gzipped JSON-LD file, e.g. one using "@context": "https://schema.org/"
 npm run new-worker -- people https://example.org/data/people.jsonld.gz
+
+# An OWL ontology in RDF/XML
+npm run new-worker -- onto https://example.org/ontology/core.owl
 
 # A content-negotiated URL without an extension: set the format and the
 # Accept header to request explicitly
@@ -66,7 +69,7 @@ explains how it works, the [data file settings](#data-file), and
   automatically — and passes it to `initSync()`, so no fetch of the wasm
   binary itself is needed.
 - On the first request a Worker isolate handles, `src/store.ts` fetches
-  `env.DATA_URL`, parses it as Turtle or JSON-LD (see
+  `env.DATA_URL`, parses it as Turtle, JSON-LD or RDF/XML (see
   [Data file](#data-file)), and loads it into a new `Store`. That
   store is then cached at module scope and reused for every later request the
   same isolate handles (an isolate can be reused for many requests, but isn't
@@ -107,16 +110,21 @@ required:
 | Var           | Default                                                    | Override with                                    |
 | ------------- | ---------------------------------------------------------- | ------------------------------------------------ |
 | `DATA_URL`    | none                                                       | the file's URL                                   |
-| `DATA_FORMAT` | from the extension: `.ttl` is Turtle, `.jsonld` and `.json` are JSON-LD | `text/turtle` or `application/ld+json` |
+| `DATA_FORMAT` | from the extension: `.ttl` is Turtle, `.jsonld` and `.json` are JSON-LD, `.rdf` and `.owl` are RDF/XML | `text/turtle`, `application/ld+json` or `application/rdf+xml` |
 | `DATA_ACCEPT` | asks for the format, e.g. `text/turtle, */*;q=0.1`        | any `Accept` header value                        |
 
 - A trailing `.gz` is looked through, so `data.ttl.gz` is Turtle.
 - A URL without one of those extensions, typically a content-negotiated one
   like a `w3id.org` or PURL redirect, is parsed according to the
-  `Content-Type` it is served with. If that isn't `text/turtle` or
-  `application/ld+json` either, loading fails with a `502` asking you to set
-  `DATA_FORMAT`. Without a known format, the default `Accept` asks for
-  Turtle first, then JSON-LD.
+  `Content-Type` it is served with. If that isn't `text/turtle`,
+  `application/ld+json` or `application/rdf+xml` either, loading fails with
+  a `502` asking you to set `DATA_FORMAT`. Without a known format, the
+  default `Accept` asks for Turtle first, then JSON-LD, then RDF/XML.
+- `.owl` is read as RDF/XML because that's what nearly all `.owl` files
+  are, including Protégé's default output (DTD entities and `xml:base` work).
+  An `.owl` file in Turtle needs `DATA_FORMAT` set to `text/turtle`. The
+  separate OWL/XML syntax (`application/owl+xml`) isn't RDF, and Oxigraph
+  can't read it.
 - Set `DATA_ACCEPT` when a server needs something else to return RDF, for
   example a stricter header without the `*/*` fallback.
 
@@ -169,8 +177,8 @@ endpoint shares the same code, so a code change reaches all of them on their
 next deploy.
 
 - The format and `Accept` header follow the [defaults](#data-file), going
-  by the file extension. Override them with `--format turtle` or
-  `--format jsonld`, and `--accept '<header>'`. For a URL without a known
+  by the file extension. Override them with `--format turtle`,
+  `--format jsonld` or `--format rdfxml`, and `--accept '<header>'`. For a URL without a known
   extension, the command warns that the format will come from the served
   `Content-Type`.
 - `--no-deploy` only writes the config. Try it locally with
@@ -186,8 +194,9 @@ Deploying uses the same credentials as `npm run deploy`, see
 
 ## JSON-LD
 
-For JSON-LD data, Oxigraph's own JSON-LD parser reads the file. Its JavaScript API has no way to load remote
-contexts, though, so a document using `"@context": "https://schema.org/"`
+For JSON-LD data, Oxigraph's own JSON-LD parser reads the file. Its
+JavaScript API has no way to load remote contexts, though, so a document
+using `"@context": "https://schema.org/"`
 would fail on its own. `src/jsonld-contexts.ts` fills that gap: before
 parsing, it fetches every remote context the document refers to (including
 contexts inside other contexts, `@import`, and scoped contexts on term
@@ -215,7 +224,10 @@ Tests run against the real Workers runtime via
 remote JSON-LD context, are loaded from `data:` URLs).
 `test/jsonld.spec.ts` also covers context inlining with a fake `fetch`:
 `Link` header alternates, relative URLs, `@import`, scoped contexts and
-cycles.
+cycles. `test/data-source.spec.ts` covers how the data file is fetched and
+read: the format from the file extension or `Content-Type`, the
+`DATA_FORMAT` and `DATA_ACCEPT` overrides, the `Accept` header sent, RDF/XML,
+and gzipped files.
 
 ## Deploy
 
@@ -226,7 +238,7 @@ npm run deploy
 By default this runs against whatever account `wrangler login` last
 authenticated — an OAuth grant that covers every Cloudflare product on the
 account (KV, R2, D1, routes, ...), not just what this Worker uses. This
-project has no bindings besides a plain var and no custom route, so the
+project has no bindings besides plain vars and no custom route, so the
 actual minimum is a single permission. To scope it down:
 
 1. At <https://dash.cloudflare.com/profile/api-tokens>, choose **Create
