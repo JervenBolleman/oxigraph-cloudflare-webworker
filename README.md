@@ -58,7 +58,8 @@ curl 'https://books.<your-subdomain>.workers.dev/sparql' \
   --data-urlencode 'query=SELECT * WHERE { ?s ?p ?o } LIMIT 10' -G
 ```
 
-Or open that `/sparql` URL in a browser for a [query editor](#query-editor).
+Or open the Worker's address, or that `/sparql` URL, in a browser for a
+[query editor](#query-editor).
 
 Run `npm run new-worker -- --help` for all options. The rest of this README
 explains how it works, the [data file settings](#data-file), and
@@ -188,10 +189,11 @@ npx wrangler dev --var DATA_URL:http://localhost:8793/negotiated --var DATA_FORM
 
 ## Query editor
 
-A browser opening `/sparql` without a query gets a page with the
+The home page, `/`, is always a page with the
 [SIB SPARQL editor](https://github.com/sib-swiss/sparql-editor) (built on
-YASGUI), set up to query that same endpoint. Any request without a query
-whose `Accept` header lists `text/html` or `application/xhtml+xml` gets the
+YASGUI), set up to query the endpoint. `/sparql` serves the same page to a
+browser opening it without a query: any request without a query whose
+`Accept` header lists `text/html` or `application/xhtml+xml` gets the
 page. Other clients, including `curl` with its `*/*`, still get a `400` for a
 missing query, and a request with a query is answered as before.
 

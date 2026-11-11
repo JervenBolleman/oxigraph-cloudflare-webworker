@@ -25,6 +25,10 @@ const handler: ExportedHandler<Env> = {
         headers: { ...CORS_HEADERS, "Content-Type": "text/plain; charset=utf-8" },
       });
     }
+    if (url.pathname === "/") {
+      // The home page is always the editor, whatever the Accept header.
+      return editorResponse(endpointUrl, env);
+    }
     if (url.pathname !== "/sparql") {
       return new Response("Not found. Try /sparql?query=...\n", {
         status: 404,
@@ -36,16 +40,9 @@ const handler: ExportedHandler<Env> = {
     if (query === undefined && acceptsHtml(request.headers.get("Accept"))) {
       // A browser visiting the endpoint: give it an editor for this
       // endpoint instead of an error.
-      return new Response(
-        editorPage(endpointUrl, env.DATA_URL, env.EDITOR_CSS_URL || undefined),
-        {
-          headers: {
-            ...CORS_HEADERS,
-            "Content-Type": "text/html; charset=utf-8",
-            Vary: "Accept",
-          },
-        },
-      );
+      const response = editorResponse(endpointUrl, env);
+      response.headers.set("Vary", "Accept");
+      return response;
     }
     if (query === undefined) {
       return new Response(
@@ -121,6 +118,12 @@ async function extractQuery(request: Request, url: URL): Promise<string | undefi
     return new URLSearchParams(body).get("query") ?? undefined;
   }
   return undefined;
+}
+
+function editorResponse(endpointUrl: string, env: Env): Response {
+  return new Response(editorPage(endpointUrl, env.DATA_URL, env.EDITOR_CSS_URL || undefined), {
+    headers: { ...CORS_HEADERS, "Content-Type": "text/html; charset=utf-8" },
+  });
 }
 
 function message(error: unknown): string {

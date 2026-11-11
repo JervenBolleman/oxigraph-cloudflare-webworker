@@ -88,6 +88,17 @@ describe("editor page", () => {
     expect(html).toContain("&quot;&gt;&lt;script&gt;");
   });
 
+  it("is the home page, whatever the Accept header", async () => {
+    const response = await callWorker(
+      new Request("https://my-endpoint.example/", { headers: { Accept: "*/*" } }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get("Vary")).toBeNull();
+    expect(await response.text()).toContain('<sparql-editor endpoint="https://my-endpoint.example/sparql">');
+  });
+
   it("isn't served to a client that doesn't ask for HTML", async () => {
     const response = await callWorker(
       new Request("https://my-endpoint.example/sparql", { headers: { Accept: "*/*" } }),
