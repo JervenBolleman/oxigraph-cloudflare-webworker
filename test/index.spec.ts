@@ -48,7 +48,9 @@ describe("SPARQL worker", () => {
   });
 
   it("accepts a POST body with content type application/sparql-query", async () => {
-    const query = "SELECT (COUNT(*) AS ?count) WHERE { ?s ?p ?o }";
+    // Only the data's own triples: the default graph also holds a copy of
+    // the prefix declarations.
+    const query = "SELECT (COUNT(*) AS ?count) WHERE { ?s <https://schema.org/name> ?o }";
     const response = await callWorker(
       new Request("https://example.com/sparql", {
         method: "POST",
@@ -88,6 +90,40 @@ describe("SPARQL worker", () => {
     const response = await callWorker(new Request("https://example.com/sparql"));
 
     expect(response.status).toBe(400);
+  });
+
+  it("declares the data's prefixes below the endpoint's own URL", async () => {
+    const query =
+      "SELECT ?namespace WHERE { GRAPH <https://example.com/sparql/.well-known/sparql-examples/> " +
+      '{ ?d <http://www.w3.org/ns/shacl#prefix> "schema" ; <http://www.w3.org/ns/shacl#namespace> ?namespace } }';
+    const response = await callWorker(
+      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+    );
+
+    const body = await response.json<{ results: { bindings: { namespace: { value: string } }[] } }>();
+    expect(body.results.bindings.map((b) => b.namespace.value)).toEqual(["https://schema.org/"]);
+  });
+
+  it("also answers the editor's prefix query, which has no GRAPH clause", async () => {
+    const query =
+      "SELECT ?namespace WHERE { ?d <http://www.w3.org/ns/shacl#prefix> \"schema\" ; " +
+      "<http://www.w3.org/ns/shacl#namespace> ?namespace }";
+    const response = await callWorker(
+      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+    );
+
+    const body = await response.json<{ results: { bindings: { namespace: { value: string } }[] } }>();
+    expect(body.results.bindings.map((b) => b.namespace.value)).toEqual(["https://schema.org/"]);
+  });
+
+  it("keeps to the dataset a query picks with FROM", async () => {
+    const query = "SELECT (COUNT(*) AS ?count) FROM <https://example.org/nothing> WHERE { ?s ?p ?o }";
+    const response = await callWorker(
+      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+    );
+
+    const body = await response.json<{ results: { bindings: { count: { value: string } }[] } }>();
+    expect(body.results.bindings[0].count.value).toBe("0");
   });
 
   it("asks crawlers to stay out of /sparql", async () => {

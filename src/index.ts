@@ -17,6 +17,7 @@ const handler: ExportedHandler<Env> = {
     }
 
     const url = new URL(request.url);
+    const endpointUrl = env.PUBLIC_ENDPOINT_URL || `${url.origin}/sparql`;
     if (url.pathname === "/robots.txt") {
       // Every query is answered from scratch, so a crawler following
       // links into /sparql would only burn CPU time on the endpoint.
@@ -36,7 +37,7 @@ const handler: ExportedHandler<Env> = {
       // A browser visiting the endpoint: give it an editor for this
       // endpoint instead of an error.
       return new Response(
-        editorPage(`${url.origin}/sparql`, env.DATA_URL, env.EDITOR_CSS_URL || undefined),
+        editorPage(endpointUrl, env.DATA_URL, env.EDITOR_CSS_URL || undefined),
         {
           headers: {
             ...CORS_HEADERS,
@@ -55,11 +56,14 @@ const handler: ExportedHandler<Env> = {
 
     let store;
     try {
-      store = await getStore({
-        url: env.DATA_URL,
-        format: env.DATA_FORMAT || undefined,
-        accept: env.DATA_ACCEPT || undefined,
-      });
+      store = await getStore(
+        {
+          url: env.DATA_URL,
+          format: env.DATA_FORMAT || undefined,
+          accept: env.DATA_ACCEPT || undefined,
+        },
+        endpointUrl,
+      );
     } catch (error) {
       return new Response(`Failed to load the RDF dataset: ${message(error)}\n`, {
         status: 502,

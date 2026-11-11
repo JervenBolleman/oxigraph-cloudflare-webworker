@@ -3,7 +3,7 @@
 // writes workers/<name>.jsonc (sharing this repo's src/) and deploys it,
 // which is what creates the Worker on Cloudflare.
 //
-//   npm run new-worker -- <name> <data-url> [--format turtle|jsonld|rdfxml] [--accept <header>] [--editor-css <url>] [--no-deploy] [--force]
+//   npm run new-worker -- <name> <data-url> [--format turtle|jsonld|rdfxml] [--accept <header>] [--endpoint-url <url>] [--editor-css <url>] [--no-deploy] [--force]
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -48,6 +48,8 @@ Options:
                             it is served with
   --accept <header>         Accept header to send when fetching <data-url>.
                             Default: asks for the format above
+  --endpoint-url <url>      Public URL of the endpoint, e.g. behind a custom
+                            domain. Default: /sparql on the Worker's address
   --editor-css <url>        Stylesheet for the SPARQL editor page, replacing
                             the minimal default
   --no-deploy               Only write the config, don't deploy
@@ -67,6 +69,7 @@ try {
     options: {
       format: { type: "string" },
       accept: { type: "string" },
+      "endpoint-url": { type: "string" },
       "editor-css": { type: "string" },
       "no-deploy": { type: "boolean", default: false },
       force: { type: "boolean", default: false },
@@ -125,8 +128,10 @@ if (values.format !== undefined) {
   }
 }
 
-if (values["editor-css"] !== undefined && !/^https?:\/\//.test(values["editor-css"])) {
-  fail(`editor CSS must be an http(s) URL, got ${JSON.stringify(values["editor-css"])}`);
+for (const option of ["endpoint-url", "editor-css"]) {
+  if (values[option] !== undefined && !/^https?:\/\//.test(values[option])) {
+    fail(`--${option} must be an http(s) URL, got ${JSON.stringify(values[option])}`);
+  }
 }
 
 const configPath = join(WORKERS_DIR, `${name}.jsonc`);
@@ -151,6 +156,7 @@ const config = {
     DATA_URL: url.href,
     DATA_FORMAT: dataFormat,
     DATA_ACCEPT: values.accept ?? "",
+    PUBLIC_ENDPOINT_URL: values["endpoint-url"] ?? "",
     EDITOR_CSS_URL: values["editor-css"] ?? "",
   },
 };

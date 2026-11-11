@@ -57,6 +57,15 @@ describe("editor page", () => {
     expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
   });
 
+  it("points the editor at PUBLIC_ENDPOINT_URL when set", async () => {
+    const response = await callWorker(
+      new Request("https://my-endpoint.example/sparql", { headers: { Accept: BROWSER_ACCEPT } }),
+      { PUBLIC_ENDPOINT_URL: "https://sparql.example.org/sparql" },
+    );
+
+    expect(await response.text()).toContain('<sparql-editor endpoint="https://sparql.example.org/sparql">');
+  });
+
   it("swaps the default CSS for EDITOR_CSS_URL", async () => {
     const response = await callWorker(
       new Request("https://my-endpoint.example/sparql", { headers: { Accept: BROWSER_ACCEPT } }),

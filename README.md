@@ -206,7 +206,45 @@ missing query, and a request with a query is answered as before.
 - The editor fills its autocomplete and example list from a
   [VoID description](https://www.w3.org/TR/void/) and
   [SHACL query examples](https://github.com/sib-swiss/sparql-examples) in the
-  data itself. Without them it still works, with default prefixes only.
+  data itself. Without them it still works.
+- `PUBLIC_ENDPOINT_URL` is the endpoint's public URL, such as
+  `https://sparql.example.org/sparql` behind a custom domain. The editor
+  queries it, and it names the prefix graph below. Leave it empty for
+  `/sparql` on whatever address the Worker is reached at; `npm run new-worker`
+  sets it with `--endpoint-url <url>`.
+
+### Prefixes
+
+The editor offers the prefixes an endpoint declares in the
+[sparql-examples](https://github.com/sib-swiss/sparql-examples) style, as
+SHACL prefix declarations. For a Turtle, TriG, N3 or RDF/XML data file, the
+Worker reads the prefixes the file declares (`@prefix`/`PREFIX` lines, or
+`xmlns:` attributes) and adds them in that style:
+
+```turtle
+_:prefixes a owl:Ontology ;
+  owl:imports sh: ;
+  sh:declare _:prefix_schema .
+_:prefix_schema sh:prefix "schema" ;
+  sh:namespace "https://schema.org/"^^xsd:anyURI .
+```
+
+They go in the graph `<PUBLIC_ENDPOINT_URL/.well-known/sparql-examples/>`,
+where the editor also looks for query examples by default, e.g.
+`<https://sparql.example.org/sparql/.well-known/sparql-examples/>`.
+
+- A copy also goes in the default graph, because the editor asks for
+  prefixes without a `GRAPH` clause, and the default graph here doesn't
+  include named graphs. So a query over the whole default graph, like
+  `SELECT (COUNT(*) AS ?n) { ?s ?p ?o }`, counts these declarations too.
+- The empty prefix (`@prefix : <...>`), `xmlns:xml` and namespaces written
+  as XML entity references (`xmlns:ex="&ex;"`) are skipped. Relative
+  namespaces are resolved against `DATA_URL`.
+- Without `PUBLIC_ENDPOINT_URL`, the graph is named after the address of
+  the request that made the Worker load its data. An endpoint reached at
+  more than one address, like `workers.dev` and a custom domain, should set
+  it.
+- JSON-LD, N-Triples and N-Quads have no prefix declarations to read.
 
 ## Create a new named Worker
 
@@ -228,6 +266,8 @@ next deploy.
   `--format ntriples`) and `--accept '<header>'`. For a URL without a known
   extension, the command warns that the format will come from the served
   `Content-Type`.
+- `--endpoint-url <url>` sets `PUBLIC_ENDPOINT_URL`, for an endpoint
+  behind a custom domain, see [Query editor](#query-editor).
 - `--editor-css <url>` sets the stylesheet of the
   [query editor](#query-editor) page.
 - `--no-deploy` only writes the config. Try it locally with
@@ -278,7 +318,8 @@ read: the format from the file extension or `Content-Type`, the
 `DATA_FORMAT` and `DATA_ACCEPT` overrides, the `Accept` header sent,
 loading every supported format, named graphs, and gzipped files.
 `test/editor-page.spec.ts` covers when the query editor page is served, and
-its CSS override.
+its CSS override. `test/prefixes.spec.ts` covers reading prefixes from
+Turtle and RDF/XML, and the SHACL declarations made from them.
 
 ## Deploy
 
