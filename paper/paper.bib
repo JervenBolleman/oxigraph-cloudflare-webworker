@@ -1,0 +1,328 @@
+% References for paper.md.
+%
+% The first block has an entry for every citation key paper.md already uses.
+% The second block holds suggestions that paper.md doesn't cite yet; delete
+% the ones you don't want. DOIs were checked against Crossref and PubMed,
+% W3C specifications against their current /TR/ pages (November 2026).
+
+% ---------------------------------------------------------------------------
+% Keys used in paper.md
+% ---------------------------------------------------------------------------
+
+@article{sibweb,
+  title   = {The {SIB} {Swiss} {Institute} of {Bioinformatics} {Semantic} {Web} of data},
+  author  = {{SIB Swiss Institute of Bioinformatics RDF Group Members}},
+  journal = {Nucleic Acids Research},
+  volume  = {52},
+  number  = {D1},
+  pages   = {D44--D51},
+  year    = {2024},
+  doi     = {10.1093/nar/gkad902}
+}
+
+@article{yummydata,
+  title   = {{YummyData}: providing high-quality open life science data},
+  author  = {Yamamoto, Yasunori and Yamaguchi, Atsuko and Splendiani, Andrea},
+  journal = {Database},
+  volume  = {2018},
+  pages   = {bay022},
+  year    = {2018},
+  doi     = {10.1093/database/bay022}
+}
+
+@article{uniprot,
+  title   = {{UniProt}: the {Universal} {Protein} {Knowledgebase} in 2025},
+  author  = {{The UniProt Consortium}},
+  journal = {Nucleic Acids Research},
+  volume  = {53},
+  number  = {D1},
+  pages   = {D609--D617},
+  year    = {2025},
+  doi     = {10.1093/nar/gkae1010}
+}
+
+@misc{lindas,
+  title        = {{LINDAS}: {Linked} {Data} {Service} of the {Swiss} federal administration},
+  author       = {{Swiss Federal Archives}},
+  howpublished = {\url{https://lindas.admin.ch/}},
+  note         = {Accessed 11 November 2026}
+}
+
+@misc{epo,
+  title        = {{EPO} {Linked} {Open} {EP} data},
+  author       = {{European Patent Office}},
+  howpublished = {\url{https://data.epo.org/linked-data/}},
+  note         = {Accessed 11 November 2026}
+}
+
+@article{wikidata,
+  title   = {Wikidata: a free collaborative knowledgebase},
+  author  = {Vrande{\v{c}}i{\'c}, Denny and Kr{\"o}tzsch, Markus},
+  journal = {Communications of the ACM},
+  volume  = {57},
+  number  = {10},
+  pages   = {78--85},
+  year    = {2014},
+  doi     = {10.1145/2629489}
+}
+
+@inproceedings{comunica,
+  title     = {Comunica: A Modular {SPARQL} Query Engine for the Web},
+  author    = {Taelman, Ruben and Van Herwegen, Joachim and Vander Sande, Miel and Verborgh, Ruben},
+  booktitle = {The Semantic Web -- ISWC 2018},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {11137},
+  pages     = {239--255},
+  publisher = {Springer},
+  year      = {2018},
+  doi       = {10.1007/978-3-030-00668-6_15}
+}
+
+@techreport{SPARQL-protocol,
+  title       = {{SPARQL} 1.1 Protocol},
+  author      = {Feigenbaum, Lee and Williams, Gregory Todd and Clark, Kendall Grant and Torres, Elias},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2013},
+  month       = mar,
+  url         = {https://www.w3.org/TR/sparql11-protocol/}
+}
+
+@misc{webworker,
+  title        = {Cloudflare {Workers} documentation},
+  author       = {{Cloudflare, Inc.}},
+  howpublished = {\url{https://developers.cloudflare.com/workers/}},
+  note         = {Accessed 11 November 2026}
+}
+
+@techreport{turtle,
+  title       = {{RDF} 1.1 {Turtle}: Terse {RDF} Triple Language},
+  author      = {Prud'hommeaux, Eric and Carothers, Gavin},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2014},
+  month       = feb,
+  url         = {https://www.w3.org/TR/turtle/}
+}
+
+% A slash in a citation key works in pandoc, but rdfxml is safer with
+% other BibTeX tooling; rename here and in paper.md together.
+@techreport{rdf/xml,
+  title       = {{RDF} 1.1 {XML} Syntax},
+  author      = {Gandon, Fabien and Schreiber, Guus},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2014},
+  month       = feb,
+  url         = {https://www.w3.org/TR/rdf-syntax-grammar/}
+}
+
+@techreport{ntriples,
+  title       = {{RDF} 1.1 {N-Triples}: A line-based syntax for an {RDF} graph},
+  author      = {Carothers, Gavin and Seaborne, Andy},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2014},
+  month       = feb,
+  url         = {https://www.w3.org/TR/n-triples/}
+}
+
+@techreport{jsonld,
+  title       = {{JSON-LD} 1.1: A {JSON}-based Serialization for Linked Data},
+  author      = {Kellogg, Gregg and Champin, Pierre-Antoine and Longley, Dave},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2020},
+  month       = jul,
+  url         = {https://www.w3.org/TR/json-ld11/}
+}
+
+@software{oxigraph,
+  title     = {Oxigraph},
+  author    = {Pellissier Tanon, Thomas},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.7408022},
+  url       = {https://github.com/oxigraph/oxigraph},
+  note      = {Version 0.5.13 used; the DOI is the concept DOI for all versions}
+}
+
+@software{sib-query-editor,
+  title  = {{SPARQL} editor web component},
+  author = {Emonet, Vincent and others},
+  url    = {https://github.com/sib-swiss/sparql-editor},
+  note   = {npm package @sib-swiss/sparql-editor, version 0.2.15}
+}
+
+@article{edam,
+  title   = {{EDAM}: an ontology of bioinformatics operations, types of data and identifiers, topics and formats},
+  author  = {Ison, Jon and Kala{\v{s}}, Mat{\'u}{\v{s}} and Jonassen, Inge and Bolser, Dan and Uludag, Mahmut and McWilliam, Hamish and Malone, James and Lopez, Rodrigo and Pettifer, Steve and Rice, Peter},
+  journal = {Bioinformatics},
+  volume  = {29},
+  number  = {10},
+  pages   = {1325--1332},
+  year    = {2013},
+  doi     = {10.1093/bioinformatics/btt113}
+}
+
+% ---------------------------------------------------------------------------
+% Suggestions, not yet cited in paper.md
+% ---------------------------------------------------------------------------
+
+% Related work on low-cost publishing: the closest alternative to this
+% paper's approach, and the one reviewers will ask about.
+@article{tpf,
+  title   = {Triple Pattern Fragments: A low-cost knowledge graph interface for the Web},
+  author  = {Verborgh, Ruben and Vander Sande, Miel and Hartig, Olaf and Van Herwegen, Joachim and De Vocht, Laurens and De Meester, Ben and Haesendonck, Gerald and Colpaert, Pieter},
+  journal = {Journal of Web Semantics},
+  volume  = {37--38},
+  pages   = {184--206},
+  year    = {2016},
+  doi     = {10.1016/j.websem.2016.03.003}
+}
+
+@techreport{sparql11-query,
+  title       = {{SPARQL} 1.1 Query Language},
+  author      = {Harris, Steve and Seaborne, Andy},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2013},
+  month       = mar,
+  url         = {https://www.w3.org/TR/sparql11-query/}
+}
+
+% For federation: what a SERVICE target needs to offer, and what an
+% endpoint can describe about itself.
+@techreport{sparql11-sd,
+  title       = {{SPARQL} 1.1 Service Description},
+  author      = {Williams, Gregory Todd},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2013},
+  month       = mar,
+  url         = {https://www.w3.org/TR/sparql11-service-description/}
+}
+
+% The prefix declarations the Worker adds use SHACL's sh:declare,
+% sh:prefix and sh:namespace.
+@techreport{shacl,
+  title       = {Shapes Constraint Language ({SHACL})},
+  author      = {Knublauch, Holger and Kontokostas, Dimitris},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  year        = {2017},
+  month       = jul,
+  url         = {https://www.w3.org/TR/shacl/}
+}
+
+% The editor's autocomplete reads a VoID description from the endpoint.
+@techreport{void,
+  title       = {Describing Linked Datasets with the {VoID} Vocabulary},
+  author      = {Alexander, Keith and Cyganiak, Richard and Hausenblas, Michael and Zhao, Jun},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Interest Group Note},
+  year        = {2011},
+  month       = mar,
+  url         = {https://www.w3.org/TR/void/}
+}
+
+% The sparql-examples collection whose prefix and example conventions the
+% Worker follows, and which the editor reads.
+@article{sparqlexamples,
+  title   = {A large collection of bioinformatics question-query pairs over federated knowledge graphs: methodology and applications},
+  author  = {Bolleman, Jerven and Emonet, Vincent and Altenhoff, Adrian and Bairoch, Amos and Blatter, Marie-Claude and Bridge, Alan and Duvaud, S{\'e}verine and Gasteiger, Elisabeth and Kuznetsov, Dmitry and Moretti, S{\'e}bastien and Michel, Pierre-Andre and Morgat, Anne and Pagni, Marco and Redaschi, Nicole and Zahn-Zabal, Monique and de Farias, Tarcisio Mendes and Sima, Ana Claudia},
+  journal = {GigaScience},
+  volume  = {14},
+  pages   = {giaf045},
+  year    = {2025},
+  doi     = {10.1093/gigascience/giaf045}
+}
+
+% Supports the abstract's "by users and LLMs".
+@article{sparqlllm,
+  title   = {{SPARQL-LLM}: Real-Time {SPARQL} Query Generation from Natural Language Questions},
+  author  = {Smeros, Panayiotis and Emonet, Vincent and Wang, Ruijie and Sima, Ana-Claudia and Mendes De Farias, Tarcisio},
+  journal = {ACM Transactions on the Web},
+  volume  = {20},
+  number  = {4},
+  pages   = {1--21},
+  year    = {2026},
+  doi     = {10.1145/3847195}
+}
+
+@InProceedings{fed_problems,
+author="Crum, Elias
+and Tam, Bryan-Elliott
+and Hanski, Jonni
+and Sima, Ana-Claudia
+and de Farias, Tarcisio Mendes
+and Bolleman, Jerven
+and Taelman, Ruben",
+editor="Koubarakis, Manolis
+and Vidal, Maria-Esther
+and Polleres, Axel
+and van Erp, Marieke
+and Jim{\'e}nez-Ruiz, Ernesto
+and Seneviratne, Oshani
+and Aroyo, Lora
+and Demartini, Gianluca
+and Alharbi, Reham
+and Barile, Roberto
+and d'Amato, Claudia
+and Tamma, Valentina",
+title="Does SPARQL Federation Work in the Real World? A Case Study over Large Biological SPARQL Endpoints",
+booktitle="The Semantic Web -- ISWC 2026",
+year="2027",
+publisher="Springer Nature Switzerland",
+address="Cham",
+pages="323--342",
+abstract="Federated SPARQL querying theoretically enables data integration over distributed knowledge sources without requiring centralized data replication. In practice, federated SPARQL querying can be performed manually (i.e., the user provides SERVICE clauses that specify targets for operations) or algorithmically (i.e., an adaptive approach for automatic source assignment for operations). To date, most evaluations of SPARQL federation, both manual and algorithmic, are conducted under controlled benchmark conditions and say relatively little about how federation behaves against public endpoints in everyday use. We present a longitudinal study that executes 67 real-world federated SPARQL queries that target over 20 widely-used, large public SPARQL endpoints, using both manual and algorithmic federation approaches, at 4 different time-points between Spring 2025 and Spring 2026. The federated queries were obtained from users of these endpoints and the majority represent complex, biologically relevant questions. There were two crucial findings. First, we found that the current state-of-the-art algorithmic federation approaches perform substantially worse than manual approaches across all time points, and in most cases, encounter errors when executing the queries tested. Second, we found that query execution success decreased over the time points tested, for both manual and automatic methods. We frame the discussion of our findings from two perspectives: the user executing the federated queries, and the endpoint maintainer who must balance resource availability and usage demands. Ultimately, we aim to bring attention to the current state of SPARQL federation in complex, real-world scenarios -- specifically that this federation does not consistently work -- to encourage collaborative, community-driven improvements for users and data source maintainers alike.",
+isbn="978-3-032-42029-9"
+}
+
+
+
+% For "compiled into WASM".
+@inproceedings{wasm,
+  title     = {Bringing the web up to speed with {WebAssembly}},
+  author    = {Haas, Andreas and Rossberg, Andreas and Schuff, Derek L. and Titzer, Ben L. and Holman, Michael and Gohman, Dan and Wagner, Luke and Zakai, Alon and Bastien, J. F.},
+  booktitle = {Proceedings of the 38th ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI 2017)},
+  pages     = {185--200},
+  publisher = {ACM},
+  year      = {2017},
+  doi       = {10.1145/3062341.3062363}
+}
+
+% Wikidata's endpoint specifically, if the sentence is about endpoints
+% rather than the knowledge base.
+@inproceedings{wdqs,
+  title     = {Getting the Most Out of {Wikidata}: Semantic Technology Usage in {Wikipedia}'s Knowledge Graph},
+  author    = {Malyshev, Stanislav and Kr{\"o}tzsch, Markus and Gonz{\'a}lez, Larry and Gonsior, Julius and Bielefeldt, Adrian},
+  booktitle = {The Semantic Web -- ISWC 2018},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {11137},
+  pages     = {376--394},
+  publisher = {Springer},
+  year      = {2018},
+  doi       = {10.1007/978-3-030-00668-6_23}
+}
+
+% A newer EDAM reference to cite alongside the 2013 paper.
+@misc{edam2021,
+  title     = {{EDAM}: the bioscientific data analysis ontology (update 2021)},
+  author    = {Black, Melissa and Lamothe, Lucie and Eldakroury, Hager and Kierkegaard, Mads and Priya, Ankita and Machinda, Anne and Singh Khanduja, Uttam and Patoliya, Drashti and Rathi, Rashika and Che Nico, Tawah Peggy and Umutesi, Gloria and Blankenburg, Claudia and others},
+  publisher = {F1000Research},
+  note      = {Poster},
+  year      = {2022},
+  doi       = {10.7490/f1000research.1118900.1}
+}
+
+% Life-science examples of small, SPARQL-published datasets.
+@article{idsm,
+  title   = {{IDSM} {ChemWebRDF}: {SPARQLing} small-molecule datasets},
+  author  = {Galgonek, Jakub and Vondr{\'a}{\v{s}}ek, Ji{\v{r}}{\'\i}},
+  journal = {Journal of Cheminformatics},
+  volume  = {13},
+  pages   = {38},
+  year    = {2021},
+  doi     = {10.1186/s13321-021-00515-1}
+}
