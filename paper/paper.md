@@ -97,7 +97,9 @@ Experimentally it seems that this is doable for ontologies stored on GitHub Page
 # querying the edam ontology via the proposed Cloudflare worker
 
 curl 'https://edam.jerven-bolleman.workers.dev/sparql' \
-  --data-urlencode 'query=PREFIX owl: <http://www.w3.org/2002/07/owl#> SELECT * WHERE { ?s a owl:Class } LIMIT 10' -G
+  -G \
+  --data-urlencode \
+  'query=SELECT * WHERE { ?s a <http://www.w3.org/2002/07/owl#Class> } LIMIT 10'
 ```
 
 -----------------------------------------------------------------------------------------------------------------
@@ -133,7 +135,7 @@ SELECT DISTINCT ?sub WHERE {
 
 -------------------------------------------------------------------------
 
-Listing 2: Queryin which experimental ECO codes are used in UniProt
+Listing 2: Querying which experimental ECO codes are used in UniProt
 
 -------------------------------------------------------------------------
 
