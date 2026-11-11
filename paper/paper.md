@@ -39,7 +39,8 @@ This new capability depends on an existing SPARQL engine called Oxigraph, which 
 
 # Introduction
 
-The Semantic Web is great for sharing linked data. Querying must however be done by client-side agents or publicly provided SPARQL endpoints.
+The Semantic Web is great for sharing linked data.
+Querying must however be done by client-side agents or publicly provided SPARQL endpoints [@sparql11-query].
 There are a significant number of SPARQL endpoints available in the life sciences [@sibweb; @yummydata; @uniprot; @idsm] and other fields of endeavour [@lindas; @epo; @wdqs].
 It is an unfortunate truth that any public infrastructure has a cost associated with it and that is not always affordable for small projects, which often depend on a great deal of volunteer resources.
 This cost is one of the reasons why few small databases and datasets make their data available via server-side SPARQL.
@@ -91,7 +92,8 @@ A key limitation is that the query answering (including the data fetch when cold
 Experimentally it seems that this is doable for ontologies stored on GitHub Pages and simple queries, as demonstrated in listing 1.
 
 | -------- |
-| ```sh
+|
+```sh
 # querying the edam ontology via the proposed Cloudflare worker
 
 curl 'https://edam.jerven-bolleman.workers.dev/sparql' \
@@ -110,8 +112,19 @@ While the same approach can be used in other infrastructure, this specific code 
 
 Just having a SPARQL endpoint available does not guarantee that end-users can do all the queries they want [@fed_problems].
 However, it enables a new set of use cases especially when considering SPARQL query federation.
+The SPARQL query federation is a key use case for end users [@sparqlllm], as we can now combine small ontologies such as the ECO [@eco] and the UniProt SPARQL endpoint on the fly, reaching beyond what each database is capabable of by itself.
 
-
+| --- |
+| ```sparql
+PREFIX up: <http://purl.uniprot.org/core/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?sub WHERE {
+  SERVICE <https://eco.jerven-bolleman.workers.dev/sparql/> {
+    ?sub rdfs:subClassOf+ <http://purl.obolibrary.org/obo/ECO_0000006> .
+  }
+  ?thing up:evidence ?sub .
+}``` |
+| Listing 2: Queryin which experimental ECO codes are used in UniProt    |
 # Conclusion
 
 We now have an affordable option for small RDF datasets or ontologies to provide a SPARQL endpoint, that requires next to no maintenance and gives acceptable performance.
