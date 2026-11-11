@@ -66,6 +66,70 @@ describe("SPARQL worker", () => {
     expect(body.results.bindings[0].count.value).toBe("1");
   });
 
+  // The POST forms of the SPARQL 1.1 Protocol, sent the way QLever's own
+  // tests send them (test/SparqlProtocolTest.cpp in ad-freiburg/qlever).
+  describe("POST requests as QLever sends them", () => {
+    const COUNT = "SELECT (COUNT(*) AS ?count) WHERE { ?s <https://schema.org/name> ?o }";
+
+    async function count(request: Request): Promise<string> {
+      const response = await callWorker(request);
+      expect(response.status).toBe(200);
+      const body = await response.json<{ results: { bindings: { count: { value: string } }[] } }>();
+      return body.results.bindings[0].count.value;
+    }
+
+    it("reads a URL-encoded body with a charset and + for spaces", async () => {
+      const body = `query=${encodeURIComponent(COUNT).replace(/%20/g, "+")}&send=100`;
+      expect(body).toContain("SELECT+(COUNT(*)+AS+%3Fcount)");
+
+      const result = await count(
+        new Request("https://example.com/sparql", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body,
+        }),
+      );
+      expect(result).toBe("1");
+    });
+
+    it("reads a sparql-query body alongside other URL parameters", async () => {
+      const result = await count(
+        new Request("https://example.com/sparql?send=100", {
+          method: "POST",
+          headers: { "Content-Type": "application/sparql-query" },
+          body: COUNT,
+        }),
+      );
+      expect(result).toBe("1");
+    });
+
+    it("prefers the query in the body over a ?query= in the URL", async () => {
+      const ignored = "SELECT (0 AS ?count) WHERE {}";
+      for (const [contentType, body] of [
+        ["application/sparql-query", COUNT],
+        ["application/x-www-form-urlencoded", `query=${encodeURIComponent(COUNT)}`],
+      ]) {
+        const result = await count(
+          new Request(`https://example.com/sparql?query=${encodeURIComponent(ignored)}`, {
+            method: "POST",
+            headers: { "Content-Type": contentType },
+            body,
+          }),
+        );
+        expect(result).toBe("1");
+      }
+    });
+
+    it("still takes ?query= from the URL of a POST without a body", async () => {
+      const result = await count(
+        new Request(`https://example.com/sparql?query=${encodeURIComponent(COUNT)}`, {
+          method: "POST",
+        }),
+      );
+      expect(result).toBe("1");
+    });
+  });
+
   it("returns Turtle for a CONSTRUCT query when asked", async () => {
     const query = "CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }";
     const response = await callWorker(

@@ -96,16 +96,15 @@ const handler: ExportedHandler<Env> = {
 
 export default handler;
 
+// Per the SPARQL 1.1 Protocol, a POST carries its query in the body, so a
+// query in the body wins over a ?query= in the URL. A POST without one still
+// falls back to the URL, for clients that POST to a GET-style URL.
 async function extractQuery(request: Request, url: URL): Promise<string | undefined> {
-  const fromQueryString = url.searchParams.get("query");
-  if (fromQueryString !== null) {
-    return fromQueryString;
-  }
+  const fromBody = request.method === "POST" ? await queryFromBody(request) : undefined;
+  return fromBody ?? url.searchParams.get("query") ?? undefined;
+}
 
-  if (request.method !== "POST") {
-    return undefined;
-  }
-
+async function queryFromBody(request: Request): Promise<string | undefined> {
   const contentType = request.headers.get("Content-Type") ?? "";
   if (contentType.includes("application/sparql-query")) {
     // Not request.text(): workerd only recognises a fixed allowlist of
