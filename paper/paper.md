@@ -91,15 +91,16 @@ In practical terms that means ontologies larger than 50 MB will not work in the 
 A key limitation is that the query answering (including the data fetch when cold starting a Worker isolate) must happen within 10 ms per request.
 Experimentally it seems that this is doable for ontologies stored on GitHub Pages and simple queries, as demonstrated in listing 1.
 
-| -------- |
-|
+-----------------------------------------------------------------------------------------------------------------
 ```sh
 # querying the edam ontology via the proposed Cloudflare worker
 
 curl 'https://edam.jerven-bolleman.workers.dev/sparql' \
   --data-urlencode 'query=PREFIX owl: <http://www.w3.org/2002/07/owl#> SELECT * WHERE { ?s a owl:Class } LIMIT 10' -G
-``` |
-| Listing 1: Simple query to list the first 10 found classes in the EDAM ontology |
+```
+-----------------------------------------------------------------------------------------------------------------
+Listing 1: Simple query to list the first 10 found classes in the EDAM ontology
+-----------------------------------------------------------------------------------------------------------------
 
 
 Ontologies or RDF data in JSON-LD with a large number of remote `@context` declarations are also unlikely to be successful.
@@ -114,8 +115,8 @@ Just having a SPARQL endpoint available does not guarantee that end-users can do
 However, it enables a new set of use cases especially when considering SPARQL query federation.
 The SPARQL query federation is a key use case for end users [@sparqlllm], as we can now combine small ontologies such as the ECO [@eco] and the UniProt SPARQL endpoint on the fly, reaching beyond what each database is capabable of by itself.
 
-| --- |
-| ```sparql
+-------------------------------------------------------------------------
+```sparql
 PREFIX up: <http://purl.uniprot.org/core/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?sub WHERE {
@@ -123,8 +124,10 @@ SELECT DISTINCT ?sub WHERE {
     ?sub rdfs:subClassOf+ <http://purl.obolibrary.org/obo/ECO_0000006> .
   }
   ?thing up:evidence ?sub .
-}``` |
-| Listing 2: Queryin which experimental ECO codes are used in UniProt    |
+```
+-------------------------------------------------------------------------
+Listing 2: Queryin which experimental ECO codes are used in UniProt
+-------------------------------------------------------------------------
 # Conclusion
 
 We now have an affordable option for small RDF datasets or ontologies to provide a SPARQL endpoint, that requires next to no maintenance and gives acceptable performance.
