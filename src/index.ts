@@ -1,3 +1,4 @@
+import { namedNode } from "oxigraph/web.js";
 import { getStore } from "./store";
 import { negotiateFormat } from "./content-negotiation";
 import { acceptsHtml, editorPage } from "./editor-page";
@@ -36,7 +37,7 @@ const handler: ExportedHandler<Env> = {
       });
     }
 
-    const query = await extractQuery(request, url);
+    const { query, params } = await extractQuery(request, url);
     if (query === undefined && acceptsHtml(request.headers.get("Accept"))) {
       // A browser visiting the endpoint: give it an editor for this
       // endpoint instead of an error.
@@ -68,10 +69,20 @@ const handler: ExportedHandler<Env> = {
       });
     }
 
+    let dataset;
+    try {
+      dataset = protocolDataset(params);
+    } catch (error) {
+      return new Response(`Invalid default-graph-uri or named-graph-uri: ${message(error)}\n`, {
+        status: 400,
+        headers: CORS_HEADERS,
+      });
+    }
+
     const resultsFormat = negotiateFormat(request.headers.get("Accept"));
     let result;
     try {
-      result = store.query(query, { results_format: resultsFormat });
+      result = store.query(query, { results_format: resultsFormat, ...dataset });
     } catch (error) {
       return new Response(`Invalid SPARQL query: ${message(error)}\n`, {
         status: 400,
@@ -96,27 +107,54 @@ const handler: ExportedHandler<Env> = {
 
 export default handler;
 
-// Per the SPARQL 1.1 Protocol, a POST carries its query in the body, so a
-// query in the body wins over a ?query= in the URL. A POST without one still
-// falls back to the URL, for clients that POST to a GET-style URL.
-async function extractQuery(request: Request, url: URL): Promise<string | undefined> {
-  const fromBody = request.method === "POST" ? await queryFromBody(request) : undefined;
-  return fromBody ?? url.searchParams.get("query") ?? undefined;
+// The query, and the protocol parameters that go with it (such as
+// default-graph-uri), from wherever the SPARQL 1.1 Protocol puts them:
+// - GET: both in the URL.
+// - POST application/sparql-query: the query is the body, the parameters
+//   are in the URL.
+// - POST application/x-www-form-urlencoded: both in the body.
+// A POST's body wins over a ?query= in the URL. A POST without a query in
+// its body still falls back to the URL, for clients that POST to a
+// GET-style URL.
+async function extractQuery(
+  request: Request,
+  url: URL,
+): Promise<{ query?: string; params: URLSearchParams }> {
+  if (request.method === "POST") {
+    const contentType = request.headers.get("Content-Type") ?? "";
+    if (contentType.includes("application/sparql-query")) {
+      // Not request.text(): workerd only recognises a fixed allowlist of
+      // "text-like" content types there and warns on anything else, even
+      // though application/sparql-query bodies are plain UTF-8 text.
+      const query = new TextDecoder().decode(await request.arrayBuffer());
+      return { query, params: url.searchParams };
+    }
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const form = new URLSearchParams(await request.text());
+      const query = form.get("query");
+      if (query !== null) {
+        return { query, params: form };
+      }
+    }
+  }
+  return { query: url.searchParams.get("query") ?? undefined, params: url.searchParams };
 }
 
-async function queryFromBody(request: Request): Promise<string | undefined> {
-  const contentType = request.headers.get("Content-Type") ?? "";
-  if (contentType.includes("application/sparql-query")) {
-    // Not request.text(): workerd only recognises a fixed allowlist of
-    // "text-like" content types there and warns on anything else, even
-    // though application/sparql-query bodies are plain UTF-8 text.
-    return new TextDecoder().decode(await request.arrayBuffer());
+// The RDF dataset named by default-graph-uri and named-graph-uri, as Oxigraph
+// query options. When either is given, the dataset is exactly what they
+// name (an empty default graph, or no named graphs, for the one left out),
+// and it replaces any FROM and FROM NAMED in the query, as the SPARQL 1.1
+// Protocol specifies. Without either, the query's own dataset applies.
+function protocolDataset(params: URLSearchParams) {
+  const defaultGraphs = params.getAll("default-graph-uri");
+  const namedGraphs = params.getAll("named-graph-uri");
+  if (defaultGraphs.length === 0 && namedGraphs.length === 0) {
+    return {};
   }
-  if (contentType.includes("application/x-www-form-urlencoded")) {
-    const body = await request.text();
-    return new URLSearchParams(body).get("query") ?? undefined;
-  }
-  return undefined;
+  return {
+    default_graph: defaultGraphs.map((iri) => namedNode(iri)),
+    named_graphs: namedGraphs.map((iri) => namedNode(iri)),
+  };
 }
 
 function editorResponse(endpointUrl: string, env: Env): Response {

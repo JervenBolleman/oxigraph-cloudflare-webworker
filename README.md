@@ -85,7 +85,11 @@ explains how it works, the [data file settings](#data-file), and
 - `src/index.ts` implements a minimal read-only [SPARQL 1.1
   Protocol](https://www.w3.org/TR/sparql11-protocol/) endpoint at `/sparql`:
   `GET`/`POST` with a `query` parameter, or `POST` with a body of content
-  type `application/sparql-query`. There is deliberately no SPARQL Update
+  type `application/sparql-query`. A query in a `POST` body wins over a
+  `?query=` in the URL. `default-graph-uri` and `named-graph-uri` pick the
+  dataset (in the URL, or in a URL-encoded `POST` body), replacing the
+  query's own `FROM` and `FROM NAMED` as the protocol specifies; giving only
+  one of them leaves the other empty. There is deliberately no SPARQL Update
   support — this is a public, unauthenticated endpoint over data it doesn't
   own.
 - The `Accept` header picks the result format directly from Oxigraph's
@@ -150,7 +154,8 @@ and `--format application/n-triples` both mean N-Triples.
   can't read it.
 - Named graphs in N-Quads, TriG or JSON-LD data stay named graphs. SPARQL
   queries see only the default graph unless they use `GRAPH`, so a plain
-  `SELECT * WHERE { ?s ?p ?o }` won't return them.
+  `SELECT * WHERE { ?s ?p ?o }` won't return them, unless the request names
+  them with `default-graph-uri`.
 - Set `DATA_ACCEPT` when a server needs something else to return RDF, for
   example a stricter header without the `*/*` fallback.
 

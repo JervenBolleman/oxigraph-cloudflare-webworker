@@ -130,6 +130,84 @@ describe("SPARQL worker", () => {
     });
   });
 
+  // default-graph-uri and named-graph-uri, in the places QLever's tests put
+  // them: the URL for GET and for an application/sparql-query POST, the
+  // body for a URL-encoded POST.
+  describe("protocol dataset parameters", () => {
+    // The data's triples are in the default graph; the prefix declarations
+    // are also in this named graph.
+    const PREFIX_GRAPH = "https://example.com/sparql/.well-known/sparql-examples/";
+    const NAMES = "SELECT (COUNT(*) AS ?count) WHERE { ?s <https://schema.org/name> ?o }";
+    const PREFIXES = "SELECT (COUNT(*) AS ?count) WHERE { ?s <http://www.w3.org/ns/shacl#prefix> ?o }";
+    const GRAPHS = "SELECT (COUNT(DISTINCT ?g) AS ?count) WHERE { GRAPH ?g { ?s ?p ?o } }";
+
+    async function count(request: Request): Promise<string> {
+      const response = await callWorker(request);
+      expect(response.status).toBe(200);
+      const body = await response.json<{ results: { bindings: { count: { value: string } }[] } }>();
+      return body.results.bindings[0].count.value;
+    }
+
+    function get(query: string, dataset: string): Request {
+      return new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}&${dataset}`);
+    }
+
+    it("uses default-graph-uri as the default graph", async () => {
+      const dataset = `default-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}`;
+      expect(await count(get(NAMES, dataset))).toBe("0");
+      expect(await count(get(PREFIXES, dataset))).toBe("1");
+    });
+
+    it("leaves the default graph empty when only named-graph-uri is given", async () => {
+      const dataset = `named-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}`;
+      expect(await count(get(NAMES, dataset))).toBe("0");
+      expect(await count(get(GRAPHS, dataset))).toBe("1");
+    });
+
+    it("has no named graphs when only default-graph-uri is given", async () => {
+      expect(await count(get(GRAPHS, `default-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}`))).toBe("0");
+    });
+
+    it("replaces the query's own FROM", async () => {
+      const query = PREFIXES.replace("WHERE", "FROM <https://example.org/nothing> WHERE");
+      expect(await count(get(query, `default-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}`))).toBe("1");
+    });
+
+    it("reads them from a URL-encoded POST body, repeated", async () => {
+      const body =
+        `query=${encodeURIComponent(GRAPHS).replace(/%20/g, "+")}` +
+        `&default-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}` +
+        `&named-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}` +
+        `&named-graph-uri=${encodeURIComponent("https://example.org/missing")}`;
+      const result = await count(
+        new Request("https://example.com/sparql", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body,
+        }),
+      );
+      expect(result).toBe("1");
+    });
+
+    it("reads them from the URL of an application/sparql-query POST", async () => {
+      const result = await count(
+        new Request(`https://example.com/sparql?default-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/sparql-query" },
+          body: PREFIXES,
+        }),
+      );
+      expect(result).toBe("1");
+    });
+
+    it("400s on a graph URI that isn't an absolute IRI", async () => {
+      const response = await callWorker(get(NAMES, "default-graph-uri=not+an+iri"));
+
+      expect(response.status).toBe(400);
+      expect(await response.text()).toContain("Invalid default-graph-uri or named-graph-uri");
+    });
+  });
+
   it("returns Turtle for a CONSTRUCT query when asked", async () => {
     const query = "CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }";
     const response = await callWorker(
