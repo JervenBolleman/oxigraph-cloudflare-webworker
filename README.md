@@ -58,6 +58,8 @@ curl 'https://books.<your-subdomain>.workers.dev/sparql' \
   --data-urlencode 'query=SELECT * WHERE { ?s ?p ?o } LIMIT 10' -G
 ```
 
+Or open that `/sparql` URL in a browser for a [query editor](#query-editor).
+
 Run `npm run new-worker -- --help` for all options. The rest of this README
 explains how it works, the [data file settings](#data-file), and
 [deploying with a minimal-permission token](#deploy) instead of
@@ -184,6 +186,28 @@ npx wrangler dev --var DATA_URL:http://localhost:8793/data.jsonld.gz
 npx wrangler dev --var DATA_URL:http://localhost:8793/negotiated --var DATA_FORMAT:application/ld+json
 ```
 
+## Query editor
+
+A browser opening `/sparql` without a query gets a page with the
+[SIB SPARQL editor](https://github.com/sib-swiss/sparql-editor) (built on
+YASGUI), set up to query that same endpoint. Any request without a query
+whose `Accept` header lists `text/html` or `application/xhtml+xml` gets the
+page. Other clients, including `curl` with its `*/*`, still get a `400` for a
+missing query, and a request with a query is answered as before.
+
+- The editor's script loads from [esm.sh](https://esm.sh), pinned to one
+  version in `src/editor-page.ts`.
+- The page comes with a minimal stylesheet (`DEFAULT_CSS` in
+  `src/editor-page.ts`). To use your own instead, set `EDITOR_CSS_URL` to
+  the URL of a stylesheet, or pass `--editor-css <url>` to
+  `npm run new-worker`. It replaces the default rather than adding to it, so
+  copy the default as a starting point. The editor's button colours are the
+  `--btn-color` and `--btn-bg-color` custom properties.
+- The editor fills its autocomplete and example list from a
+  [VoID description](https://www.w3.org/TR/void/) and
+  [SHACL query examples](https://github.com/sib-swiss/sparql-examples) in the
+  data itself. Without them it still works, with default prefixes only.
+
 ## Create a new named Worker
 
 One command names, configures and creates a new endpoint Worker:
@@ -204,6 +228,8 @@ next deploy.
   `--format ntriples`) and `--accept '<header>'`. For a URL without a known
   extension, the command warns that the format will come from the served
   `Content-Type`.
+- `--editor-css <url>` sets the stylesheet of the
+  [query editor](#query-editor) page.
 - `--no-deploy` only writes the config. Try it locally with
   `npx wrangler dev -c workers/people.jsonc`, then create it with
   `npx wrangler deploy -c workers/people.jsonc`.
@@ -251,6 +277,8 @@ cycles. `test/data-source.spec.ts` covers how the data file is fetched and
 read: the format from the file extension or `Content-Type`, the
 `DATA_FORMAT` and `DATA_ACCEPT` overrides, the `Accept` header sent,
 loading every supported format, named graphs, and gzipped files.
+`test/editor-page.spec.ts` covers when the query editor page is served, and
+its CSS override.
 
 ## Deploy
 

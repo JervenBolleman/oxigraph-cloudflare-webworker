@@ -1,5 +1,6 @@
 import { getStore } from "./store";
 import { negotiateFormat } from "./content-negotiation";
+import { acceptsHtml, editorPage } from "./editor-page";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +23,20 @@ const handler: ExportedHandler<Env> = {
     }
 
     const query = await extractQuery(request, url);
+    if (query === undefined && acceptsHtml(request.headers.get("Accept"))) {
+      // A browser visiting the endpoint: give it an editor for this
+      // endpoint instead of an error.
+      return new Response(
+        editorPage(`${url.origin}/sparql`, env.DATA_URL, env.EDITOR_CSS_URL || undefined),
+        {
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "text/html; charset=utf-8",
+            Vary: "Accept",
+          },
+        },
+      );
+    }
     if (query === undefined) {
       return new Response(
         "Missing SPARQL query. Pass ?query=... or POST a SPARQL query body.\n",

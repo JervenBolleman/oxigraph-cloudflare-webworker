@@ -16,6 +16,10 @@
     "DATA_FORMAT": "",
     // Accept header sent when fetching DATA_URL. Leave empty to ask for the
     // format above.
-    "DATA_ACCEPT": ""
+    "DATA_ACCEPT": "",
+    // URL of a stylesheet for the SPARQL editor page that browsers get from
+    // /sparql without a query. Replaces the minimal default CSS (see
+    // src/editor-page.ts). Leave empty to keep the default.
+    "EDITOR_CSS_URL": ""
   }
 }
