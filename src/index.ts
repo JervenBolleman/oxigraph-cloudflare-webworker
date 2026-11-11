@@ -8,6 +8,8 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Accept",
 };
 
+const ROBOTS_TXT = "User-agent: *\nDisallow: /sparql\n";
+
 const handler: ExportedHandler<Env> = {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -15,6 +17,13 @@ const handler: ExportedHandler<Env> = {
     }
 
     const url = new URL(request.url);
+    if (url.pathname === "/robots.txt") {
+      // Every query is answered from scratch, so a crawler following
+      // links into /sparql would only burn CPU time on the endpoint.
+      return new Response(ROBOTS_TXT, {
+        headers: { ...CORS_HEADERS, "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
     if (url.pathname !== "/sparql") {
       return new Response("Not found. Try /sparql?query=...\n", {
         status: 404,

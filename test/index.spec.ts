@@ -90,6 +90,14 @@ describe("SPARQL worker", () => {
     expect(response.status).toBe(400);
   });
 
+  it("asks crawlers to stay out of /sparql", async () => {
+    const response = await callWorker(new Request("https://example.com/robots.txt"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
+    expect(await response.text()).toBe("User-agent: *\nDisallow: /sparql\n");
+  });
+
   it("404s on unknown paths", async () => {
     const response = await callWorker(new Request("https://example.com/nope"));
 

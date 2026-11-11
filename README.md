@@ -314,6 +314,9 @@ those needs more than Workers Scripts:Edit.
 - Read-only: no SPARQL Update.
 - One dataset per Worker, fixed at `DATA_URL`; it isn't re-fetched once an
   isolate has loaded it. Use `npm run new-worker` for more datasets.
+- `/robots.txt` disallows `/sparql` for all crawlers, since every query
+  costs CPU time and a crawler following query links could run many. Only
+  well-behaved crawlers honour it; it is not access control.
 - CORS is wide open (`Access-Control-Allow-Origin: *`), matching how most
   public SPARQL endpoints behave. Tighten `CORS_HEADERS` in `src/index.ts` if
   that's not appropriate for your data.
