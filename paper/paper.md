@@ -119,7 +119,7 @@ While the same approach can be used in other infrastructure, this specific code 
 
 Just having a SPARQL endpoint available does not guarantee that end-users can do all the queries they want [@fed_problems].
 However, it enables a new set of use cases especially when considering SPARQL query federation.
-The SPARQL query federation is a key use case for end users [@sparqlllm], as we can now combine small ontologies such as the ECO [@eco] and the UniProt SPARQL endpoint on the fly, reaching beyond what each database is capabable of by itself.
+The SPARQL query federation is a key use case for end users [@sparqlllm], as we can now combine small ontologies such as the ECO [@eco] and the UniProt SPARQL endpoint on the fly, reaching beyond what each database is capabable of by itself (Listing 2.).
 
 -------------------------------------------------------------------------
 
@@ -152,6 +152,4 @@ The authors stand by the work as is, and have reviewed, corrected, and validated
 
 # Acknowledgements
 
-UniProt Grant
-Oxigraph developers
-Cloudflare
+UniProt is supported by the [National Human Genome Research Institute (NHGRI)](https://www.genome.gov/), Office of Director \[OD/DPCPSI/ODSS]; [National Institute of Allergy and Infectious Diseases (NIAID), National Institute on Aging (NIA)](https://www.niaid.nih.gov/), [National Institute of General Medical Sciences (NIGMS)](https://www.nigms.nih.gov/), [National Institute of Diabetes and Digestive and Kidney Diseases (NIDDK)](https://www.niddk.nih.gov/), [National Eye Institute (NEI)](https://nei.nih.gov/), [National Cancer Institute (NCI)](https://www.cancer.gov/),[National Heart, Lung, and Blood Institute (NHLBI)](https://www.nhlbi.nih.gov/) of the [National Institutes of Health (NIH)](https://www.nih.gov/) \[U24HG007822]; Additional support for the EMBL-EBI's involvement in UniProt comes from European Molecular Biology Laboratory (EMBL) core funds. UniProt activities at the SIB are additionally supported by the Swiss Federal Government through the [State Secretariat for Education, Research and Innovation SERI](https://www.sbfi.admin.ch/sbfi/en/home.html), and by the Novo Nordisk Foundation grant NNF25SA0110272. We also wish to thank the Oxigraph developers for making the core databases engine that this work uses, as well as Cloudflare for providing a [free tier](https://www.cloudflare.com/plans/free/).
