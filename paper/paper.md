@@ -12,6 +12,9 @@ authors:
   - name: Jerven Bolleman
     affiliation: 1
     orcid: 0000-0002-7449-1266
+  - name: Nishad Thalhath
+    affiliation: 2
+    orcid: 0000-0001-9845-9714
   - name: Nicole Redaschi
     affiliation: 1
     orcid: 0000-0001-8890-2268
@@ -19,6 +22,9 @@ affiliations:
   - name: Swiss-Prot group, SIB Swiss Institute of Bioinformatics, Geneva, Switzerland
     index: 1
     ror: 002n09z45
+  - name: RIKEN, Saitama, Japan 
+    index: 2
+    ror: 01sjwvz98
 date: 11 November 2026
 cito-bibliography: paper.bib
 event: BH26EU
