@@ -268,6 +268,24 @@ describe("SPARQL worker", () => {
     expect(body.results.bindings[0].count.value).toBe("0");
   });
 
+  it("describes the data in VoID unless GENERATE_VOID is \"false\"", async () => {
+    const query = "ASK { ?s a <http://rdfs.org/ns/void#Dataset> }";
+    const ask = async (env: Partial<Env>) => {
+      // A distinct DATA_URL per call, so each loads its own store.
+      const response = await worker.fetch!(
+        new Request<unknown, IncomingRequestCfProperties>(
+          `https://example.com/sparql?query=${encodeURIComponent(query)}`,
+        ),
+        { ...TEST_ENV, ...env } as Env,
+        createExecutionContext(),
+      );
+      return (await response.json<{ boolean: boolean }>()).boolean;
+    };
+
+    expect(await ask({ DATA_URL: `${TEST_ENV.DATA_URL}%23on`, GENERATE_VOID: "" })).toBe(true);
+    expect(await ask({ DATA_URL: `${TEST_ENV.DATA_URL}%23off`, GENERATE_VOID: "false" })).toBe(false);
+  });
+
   it("asks crawlers to stay out of /sparql", async () => {
     const response = await callWorker(new Request("https://example.com/robots.txt"));
 

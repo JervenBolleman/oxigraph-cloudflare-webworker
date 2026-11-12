@@ -3,6 +3,7 @@ import wasmModule from "oxigraph/web_bg.wasm";
 import formats from "./formats.json";
 import { inlineRemoteContexts } from "./jsonld-contexts";
 import { gleanPrefixes, prefixDeclarations, sparqlExamplesGraph } from "./prefixes";
+import { voidDescription, voidGraph } from "./void";
 
 // The wasm-bindgen "web" build normally fetches its .wasm file relative to
 // import.meta.url, which doesn't resolve inside a bundled Worker. Wrangler
@@ -45,16 +46,21 @@ let cached: { key: string; store: Promise<Store> } | undefined;
 // Loads the configured data file into an in-memory Store once per Worker
 // isolate, then reuses it for every subsequent request that isolate handles.
 // With an `endpointUrl` (the endpoint's public URL), the prefixes the file
-// declares are added as SHACL prefix declarations, see src/prefixes.ts.
-export function getStore(source: DataSource, endpointUrl?: string): Promise<Store> {
+// declares are added too, and unless `describeVoid` is false, a VoID
+// description of the data; see src/prefixes.ts and src/void.ts.
+export function getStore(
+  source: DataSource,
+  endpointUrl?: string,
+  { describeVoid = true }: { describeVoid?: boolean } = {},
+): Promise<Store> {
   // A Worker's vars are fixed for the life of an isolate, so in practice
   // this key never changes; it keeps the cache honest if it ever does.
   // endpointUrl is left out: without PUBLIC_ENDPOINT_URL it comes from the
   // request, and an endpoint reachable at two hostnames shouldn't reload
   // its data on every switch between them.
-  const key = JSON.stringify([source.url, source.format, source.accept]);
+  const key = JSON.stringify([source.url, source.format, source.accept, describeVoid]);
   if (cached?.key !== key) {
-    const store = loadStore(source, endpointUrl).catch((error: unknown) => {
+    const store = loadStore(source, endpointUrl, describeVoid).catch((error: unknown) => {
       // Don't cache a failed load: a transient fetch error shouldn't
       // permanently break every future request on this isolate.
       if (cached?.store === store) {
@@ -80,7 +86,11 @@ export function formatFromUrl(url: string): string | undefined {
   return extension ? FORMATS_BY_EXTENSION.get(extension) : undefined;
 }
 
-async function loadStore({ url, format, accept }: DataSource, endpointUrl?: string): Promise<Store> {
+async function loadStore(
+  { url, format, accept }: DataSource,
+  endpointUrl?: string,
+  describeVoid = true,
+): Promise<Store> {
   if (format !== undefined && !DATA_FORMATS.includes(format)) {
     throw new Error(
       `Unsupported DATA_FORMAT ${JSON.stringify(format)}; expected one of ${DATA_FORMATS.join(", ")}`,
@@ -113,9 +123,14 @@ async function loadStore({ url, format, accept }: DataSource, endpointUrl?: stri
   const store = new Store();
   store.load(data, { format: resolved, base_iri: url });
   if (endpointUrl) {
+    // Described before anything else is added, so it covers only the data.
+    const description = describeVoid ? voidDescription(store, voidGraph(endpointUrl)) : [];
     const prefixes = gleanPrefixes(data, resolved, url);
-    for (const declaration of prefixDeclarations(prefixes, sparqlExamplesGraph(endpointUrl))) {
-      store.add(declaration);
+    for (const metadata of [
+      ...description,
+      ...prefixDeclarations(prefixes, sparqlExamplesGraph(endpointUrl)),
+    ]) {
+      store.add(metadata);
     }
   }
   return store;

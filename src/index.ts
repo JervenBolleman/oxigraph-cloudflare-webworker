@@ -61,6 +61,7 @@ const handler: ExportedHandler<Env> = {
           accept: env.DATA_ACCEPT || undefined,
         },
         endpointUrl,
+        { describeVoid: env.GENERATE_VOID !== "false" },
       );
     } catch (error) {
       return new Response(`Failed to load the RDF dataset: ${message(error)}\n`, {

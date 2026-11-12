@@ -132,6 +132,6 @@ describe("prefix declarations in the store", () => {
     serve('<https://example.org/a> <https://schema.org/name> "A" .\n');
     const store = await getStore({ url: "https://x.example/plain.nt" }, ENDPOINT);
 
-    expect(store.query("ASK { GRAPH ?g { ?s ?p ?o } }")).toBe(false);
+    expect(store.query(`ASK { GRAPH <${GRAPH}> { ?s ?p ?o } }`)).toBe(false);
   });
 });

@@ -3,7 +3,7 @@
 // writes workers/<name>.jsonc (sharing this repo's src/) and deploys it,
 // which is what creates the Worker on Cloudflare.
 //
-//   npm run new-worker -- <name> <data-url> [--format turtle|jsonld|rdfxml] [--accept <header>] [--endpoint-url <url>] [--editor-css <url>] [--no-deploy] [--force]
+//   npm run new-worker -- <name> <data-url> [--format turtle|jsonld|rdfxml] [--accept <header>] [--endpoint-url <url>] [--editor-css <url>] [--no-void] [--no-deploy] [--force]
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -52,6 +52,9 @@ Options:
                             domain. Default: /sparql on the Worker's address
   --editor-css <url>        Stylesheet for the SPARQL editor page, replacing
                             the minimal default
+  --no-void                 Don't generate a VoID description of the data
+                            for the editor's autocomplete, saving CPU time
+                            on every cold start
   --no-deploy               Only write the config, don't deploy
   --force                   Overwrite an existing workers/<name>.jsonc
   -h, --help                Show this help
@@ -71,6 +74,7 @@ try {
       accept: { type: "string" },
       "endpoint-url": { type: "string" },
       "editor-css": { type: "string" },
+      "no-void": { type: "boolean", default: false },
       "no-deploy": { type: "boolean", default: false },
       force: { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
@@ -157,6 +161,7 @@ const config = {
     DATA_FORMAT: dataFormat,
     DATA_ACCEPT: values.accept ?? "",
     PUBLIC_ENDPOINT_URL: values["endpoint-url"] ?? "",
+    GENERATE_VOID: values["no-void"] ? "false" : "",
     EDITOR_CSS_URL: values["editor-css"] ?? "",
   },
 };

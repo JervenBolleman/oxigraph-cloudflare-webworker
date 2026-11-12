@@ -210,10 +210,11 @@ missing query, and a request with a query is answered as before.
   `npm run new-worker`. It replaces the default rather than adding to it, so
   copy the default as a starting point. The editor's button colours are the
   `--btn-color` and `--btn-bg-color` custom properties.
-- The editor fills its autocomplete and example list from a
-  [VoID description](https://www.w3.org/TR/void/) and
+- The editor fills its autocomplete from a
+  [VoID description](https://www.w3.org/TR/void/), which the Worker makes
+  from the data (see [VoID](#void) below), and its example list from
   [SHACL query examples](https://github.com/sib-swiss/sparql-examples) in the
-  data itself. Without them it still works.
+  data itself. Without examples it still works.
 - `PUBLIC_ENDPOINT_URL` is the endpoint's public URL, such as
   `https://sparql.example.org/sparql` behind a custom domain. The editor
   queries it, and it names the prefix graph below. Leave it empty for
@@ -253,6 +254,28 @@ where the editor also looks for query examples by default, e.g.
   it.
 - JSON-LD, N-Triples and N-Quads have no prefix declarations to read.
 
+### VoID
+
+The Worker also describes the data in [VoID](https://www.w3.org/TR/void/),
+the shape the editor's autocomplete reads: the classes, how many instances
+each has, and per class the properties used with it, with their object
+classes and literal datatypes (`void-ext:datatypePartition`). It is computed
+with a few SPARQL queries over all the data, named graphs included, right
+after loading, modelled on
+[kgsteward](https://github.com/sib-swiss/kgsteward)'s VoID queries.
+
+- It goes in the graph `<PUBLIC_ENDPOINT_URL/.well-known/void>`, and, like
+  the prefix declarations, a copy goes in the default graph.
+- Property partitions are per subject class and property, so the editor
+  only suggests a property for the classes it is used with.
+- The partitions are blank nodes, as is the `void:Dataset` that holds the
+  total `void:triples`.
+- It costs CPU time on every cold start. For EDAM (38,938 triples), the
+  queries took about 170-210 ms on a workstation, on top of 130-180 ms to
+  load the data. To skip it, set `GENERATE_VOID` to `"false"`, or pass
+  `--no-void` to `npm run new-worker`. The editor still works without it,
+  with less autocomplete.
+
 ## Create a new named Worker
 
 One command names, configures and creates a new endpoint Worker:
@@ -275,6 +298,8 @@ next deploy.
   `Content-Type`.
 - `--endpoint-url <url>` sets `PUBLIC_ENDPOINT_URL`, for an endpoint
   behind a custom domain, see [Query editor](#query-editor).
+- `--no-void` skips the [VoID description](#void) for the editor's
+  autocomplete, saving CPU time on every cold start.
 - `--editor-css <url>` sets the stylesheet of the
   [query editor](#query-editor) page.
 - `--no-deploy` only writes the config. Try it locally with
@@ -327,6 +352,7 @@ loading every supported format, named graphs, and gzipped files.
 `test/editor-page.spec.ts` covers when the query editor page is served, and
 its CSS override. `test/prefixes.spec.ts` covers reading prefixes from
 Turtle and RDF/XML, and the SHACL declarations made from them.
+`test/void.spec.ts` runs the editor's own VoID query against the description.
 
 ## Deploy
 
