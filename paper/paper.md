@@ -22,7 +22,7 @@ affiliations:
   - name: Swiss-Prot group, SIB Swiss Institute of Bioinformatics, Geneva, Switzerland
     index: 1
     ror: 002n09z45
-  - name: RIKEN, Saitama, Japan 
+  - name: RIKEN Center for Integrative Medical Sciences, Yokohama, Kanagawa 230-0045, Japan
     index: 2
     ror: 01sjwvz98
 date: 11 November 2026
