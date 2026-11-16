@@ -29,7 +29,7 @@ touch the code:
 
 ```mermaid
 flowchart LR
-    client([Client<br/>browser / curl]) -->|GET/POST /sparql| handler[Worker handler]
+    client([Client<br/>browser / curl]) -->|GET/POST /sparql/| handler[Worker handler]
     handler --> decision{Store cached<br/>for this isolate?}
     decision -->|yes — warm isolate| cached[Reuse cached Store]
     decision -->|no — cold start| cold["fetch(DATA_URL)<br/>parse → new Store()<br/>cache at module scope"]
@@ -103,21 +103,21 @@ it's ready:
 
 ## Query it
 
-The endpoint lives at `/sparql` and speaks the
+The endpoint lives at `/sparql/` (`/sparql` redirects there) and speaks the
 [SPARQL 1.1 Protocol](https://www.w3.org/TR/sparql11-protocol/): `GET` or
 `POST` with a `query` parameter, or `POST` with a raw body of content type
 `application/sparql-query`. A plain `GET` with the query URL-encoded in the
 query string is the simplest way to try it — even straight in a browser
 address bar:
 
-`localhost:8787/sparql?query=SELECT+%3Fs+%3Fp+%3Fo+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D+LIMIT+5`
+`localhost:8787/sparql/?query=SELECT+%3Fs+%3Fp+%3Fo+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D+LIMIT+5`
 
 ![Browser window showing the pretty-printed JSON response of a GET request running SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 5](images/query-select-json.jpg)
 
 The same query from a terminal:
 
 ```sh
-curl "http://localhost:8787/sparql?query=SELECT+%3Fs+%3Fp+%3Fo+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
+curl "http://localhost:8787/sparql/?query=SELECT+%3Fs+%3Fp+%3Fo+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
 ```
 
 `POST` works the same way, either as a form field or as a raw SPARQL body —
@@ -126,7 +126,7 @@ useful once a query is too long to comfortably fit in a URL:
 ```sh
 curl -X POST -H "Content-Type: application/sparql-query" \
   --data 'ASK { ?s ?p ?o }' \
-  http://localhost:8787/sparql
+  http://localhost:8787/sparql/
 ```
 
 ## Result formats
@@ -159,7 +159,7 @@ The equivalent from a terminal, which can set the header directly:
 
 ```sh
 curl -H "Accept: text/turtle" \
-  "http://localhost:8787/sparql?query=CONSTRUCT+%7B+%3Fs+%3Fp+%3Fo+%7D+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
+  "http://localhost:8787/sparql/?query=CONSTRUCT+%7B+%3Fs+%3Fp+%3Fo+%7D+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
 ```
 
 ## Errors
@@ -167,7 +167,7 @@ curl -H "Accept: text/turtle" \
 The worker responds with plain-text errors and ordinary HTTP status codes:
 
 - `400` — no `query` was given, or the SPARQL failed to parse.
-- `404` — any path other than `/sparql`.
+- `404` — any path other than `/sparql/` (and `/sparql`, which redirects to it).
 - `502` — `DATA_URL`, or a remote JSON-LD context it uses, couldn't be
   fetched or parsed (bad URL, origin down, etc.).
 

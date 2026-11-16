@@ -18,7 +18,7 @@ npx wrangler login
 npm run new-worker -- <name> <data-url>
 ```
 
-The Worker goes live at `https://<name>.<your-subdomain>.workers.dev/sparql`.
+The Worker goes live at `https://<name>.<your-subdomain>.workers.dev/sparql/`.
 The format comes from the file extension (`.ttl`, `.nt`, `.jsonld`, `.rdf`,
 `.owl` and [more](#data-file), optionally gzipped) unless you say otherwise.
 
@@ -54,11 +54,11 @@ npm run new-worker -- books https://example.org/data/books-v2.ttl --force
 Then query it:
 
 ```sh
-curl 'https://books.<your-subdomain>.workers.dev/sparql' \
+curl 'https://books.<your-subdomain>.workers.dev/sparql/' \
   --data-urlencode 'query=SELECT * WHERE { ?s ?p ?o } LIMIT 10' -G
 ```
 
-Or open the Worker's address, or that `/sparql` URL, in a browser for a
+Or open the Worker's address, or that `/sparql/` URL, in a browser for a
 [query editor](#query-editor).
 
 Run `npm run new-worker -- --help` for all options. The rest of this README
@@ -83,7 +83,8 @@ explains how it works, the [data file settings](#data-file), and
   guaranteed to live forever — a cold start reloads the data). A failed fetch
   is not cached, so a transient error doesn't permanently break the isolate.
 - `src/index.ts` implements a minimal read-only [SPARQL 1.1
-  Protocol](https://www.w3.org/TR/sparql11-protocol/) endpoint at `/sparql`:
+  Protocol](https://www.w3.org/TR/sparql11-protocol/) endpoint at `/sparql/`, its one canonical address. `/sparql` answers
+  with a `308` redirect there, keeping the method, body and query string:
   `GET`/`POST` with a `query` parameter, or `POST` with a body of content
   type `application/sparql-query`. A query in a `POST` body wins over a
   `?query=` in the URL. `default-graph-uri` and `named-graph-uri` pick the
@@ -178,9 +179,9 @@ npm run dev
 Then, for example:
 
 ```sh
-curl "http://localhost:8787/sparql?query=SELECT+%3Fs+%3Fp+%3Fo+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
-curl -H "Accept: text/turtle" "http://localhost:8787/sparql?query=CONSTRUCT+%7B+%3Fs+%3Fp+%3Fo+%7D+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
-curl -X POST -H "Content-Type: application/sparql-query" --data 'ASK { ?s ?p ?o }' http://localhost:8787/sparql
+curl "http://localhost:8787/sparql/?query=SELECT+%3Fs+%3Fp+%3Fo+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
+curl -H "Accept: text/turtle" "http://localhost:8787/sparql/?query=CONSTRUCT+%7B+%3Fs+%3Fp+%3Fo+%7D+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D"
+curl -X POST -H "Content-Type: application/sparql-query" --data 'ASK { ?s ?p ?o }' http://localhost:8787/sparql/
 ```
 
 To point a local dev run at a different data file without editing
@@ -196,7 +197,7 @@ npx wrangler dev --var DATA_URL:http://localhost:8793/negotiated --var DATA_FORM
 
 The home page, `/`, is always a page with the
 [SIB SPARQL editor](https://github.com/sib-swiss/sparql-editor) (built on
-YASGUI), set up to query the endpoint. `/sparql` serves the same page to a
+YASGUI), set up to query the endpoint. `/sparql/` serves the same page to a
 browser opening it without a query: any request without a query whose
 `Accept` header lists `text/html` or `application/xhtml+xml` gets the
 page. Other clients, including `curl` with its `*/*`, still get a `400` for a
@@ -216,9 +217,9 @@ missing query, and a request with a query is answered as before.
   [SHACL query examples](https://github.com/sib-swiss/sparql-examples) in the
   data itself. Without examples it still works.
 - `PUBLIC_ENDPOINT_URL` is the endpoint's public URL, such as
-  `https://sparql.example.org/sparql` behind a custom domain. The editor
+  `https://sparql.example.org/sparql/` behind a custom domain. The editor
   queries it, and it names the prefix graph below. Leave it empty for
-  `/sparql` on whatever address the Worker is reached at; `npm run new-worker`
+  `/sparql/` on whatever address the Worker is reached at; `npm run new-worker`
   sets it with `--endpoint-url <url>`.
 
 ### Prefixes
@@ -388,7 +389,7 @@ those needs more than Workers Scripts:Edit.
 - Read-only: no SPARQL Update.
 - One dataset per Worker, fixed at `DATA_URL`; it isn't re-fetched once an
   isolate has loaded it. Use `npm run new-worker` for more datasets.
-- `/robots.txt` disallows `/sparql` for all crawlers, since every query
+- `/robots.txt` disallows `/sparql` (and so `/sparql/`) for all crawlers, since every query
   costs CPU time and a crawler following query links could run many. Only
   well-behaved crawlers honour it; it is not access control.
 - CORS is wide open (`Access-Control-Allow-Origin: *`), matching how most

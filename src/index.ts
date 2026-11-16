@@ -9,6 +9,10 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Accept",
 };
 
+// The endpoint's one canonical path. Its slashless form redirects here.
+const ENDPOINT_PATH = "/sparql/";
+
+// Disallow is a prefix match, so this covers /sparql/ too.
 const ROBOTS_TXT = "User-agent: *\nDisallow: /sparql\n";
 
 const handler: ExportedHandler<Env> = {
@@ -18,7 +22,7 @@ const handler: ExportedHandler<Env> = {
     }
 
     const url = new URL(request.url);
-    const endpointUrl = env.PUBLIC_ENDPOINT_URL || `${url.origin}/sparql`;
+    const endpointUrl = env.PUBLIC_ENDPOINT_URL || `${url.origin}${ENDPOINT_PATH}`;
     if (url.pathname === "/robots.txt") {
       // Every query is answered from scratch, so a crawler following
       // links into /sparql would only burn CPU time on the endpoint.
@@ -30,8 +34,17 @@ const handler: ExportedHandler<Env> = {
       // The home page is always the editor, whatever the Accept header.
       return editorResponse(endpointUrl, env);
     }
-    if (url.pathname !== "/sparql") {
-      return new Response("Not found. Try /sparql?query=...\n", {
+    if (url.pathname === "/sparql") {
+      // 308, not 301: a client that follows it repeats a POST with its
+      // body, rather than turning it into a GET without one. The query
+      // string comes along. CORS headers let browsers follow it too.
+      return new Response(null, {
+        status: 308,
+        headers: { ...CORS_HEADERS, Location: `${ENDPOINT_PATH}${url.search}` },
+      });
+    }
+    if (url.pathname !== ENDPOINT_PATH) {
+      return new Response(`Not found. Try ${ENDPOINT_PATH}?query=...\n`, {
         status: 404,
         headers: CORS_HEADERS,
       });

@@ -24,7 +24,7 @@ describe("SPARQL worker", () => {
   it("answers a SELECT query as SPARQL JSON", async () => {
     const query = "SELECT ?name WHERE { ?s <https://schema.org/name> ?name }";
     const response = await callWorker(
-      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+      new Request(`https://example.com/sparql/?query=${encodeURIComponent(query)}`),
     );
 
     expect(response.status).toBe(200);
@@ -39,7 +39,7 @@ describe("SPARQL worker", () => {
   it("answers an ASK query", async () => {
     const query = "ASK { ?s ?p ?o }";
     const response = await callWorker(
-      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+      new Request(`https://example.com/sparql/?query=${encodeURIComponent(query)}`),
     );
 
     expect(response.status).toBe(200);
@@ -52,7 +52,7 @@ describe("SPARQL worker", () => {
     // the prefix declarations.
     const query = "SELECT (COUNT(*) AS ?count) WHERE { ?s <https://schema.org/name> ?o }";
     const response = await callWorker(
-      new Request("https://example.com/sparql", {
+      new Request("https://example.com/sparql/", {
         method: "POST",
         headers: { "Content-Type": "application/sparql-query" },
         body: query,
@@ -83,7 +83,7 @@ describe("SPARQL worker", () => {
       expect(body).toContain("SELECT+(COUNT(*)+AS+%3Fcount)");
 
       const result = await count(
-        new Request("https://example.com/sparql", {
+        new Request("https://example.com/sparql/", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
           body,
@@ -94,7 +94,7 @@ describe("SPARQL worker", () => {
 
     it("reads a sparql-query body alongside other URL parameters", async () => {
       const result = await count(
-        new Request("https://example.com/sparql?send=100", {
+        new Request("https://example.com/sparql/?send=100", {
           method: "POST",
           headers: { "Content-Type": "application/sparql-query" },
           body: COUNT,
@@ -110,7 +110,7 @@ describe("SPARQL worker", () => {
         ["application/x-www-form-urlencoded", `query=${encodeURIComponent(COUNT)}`],
       ]) {
         const result = await count(
-          new Request(`https://example.com/sparql?query=${encodeURIComponent(ignored)}`, {
+          new Request(`https://example.com/sparql/?query=${encodeURIComponent(ignored)}`, {
             method: "POST",
             headers: { "Content-Type": contentType },
             body,
@@ -122,7 +122,7 @@ describe("SPARQL worker", () => {
 
     it("still takes ?query= from the URL of a POST without a body", async () => {
       const result = await count(
-        new Request(`https://example.com/sparql?query=${encodeURIComponent(COUNT)}`, {
+        new Request(`https://example.com/sparql/?query=${encodeURIComponent(COUNT)}`, {
           method: "POST",
         }),
       );
@@ -149,7 +149,7 @@ describe("SPARQL worker", () => {
     }
 
     function get(query: string, dataset: string): Request {
-      return new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}&${dataset}`);
+      return new Request(`https://example.com/sparql/?query=${encodeURIComponent(query)}&${dataset}`);
     }
 
     it("uses default-graph-uri as the default graph", async () => {
@@ -180,7 +180,7 @@ describe("SPARQL worker", () => {
         `&named-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}` +
         `&named-graph-uri=${encodeURIComponent("https://example.org/missing")}`;
       const result = await count(
-        new Request("https://example.com/sparql", {
+        new Request("https://example.com/sparql/", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
           body,
@@ -191,7 +191,7 @@ describe("SPARQL worker", () => {
 
     it("reads them from the URL of an application/sparql-query POST", async () => {
       const result = await count(
-        new Request(`https://example.com/sparql?default-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}`, {
+        new Request(`https://example.com/sparql/?default-graph-uri=${encodeURIComponent(PREFIX_GRAPH)}`, {
           method: "POST",
           headers: { "Content-Type": "application/sparql-query" },
           body: PREFIXES,
@@ -211,7 +211,7 @@ describe("SPARQL worker", () => {
   it("returns Turtle for a CONSTRUCT query when asked", async () => {
     const query = "CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }";
     const response = await callWorker(
-      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`, {
+      new Request(`https://example.com/sparql/?query=${encodeURIComponent(query)}`, {
         headers: { Accept: "text/turtle" },
       }),
     );
@@ -223,13 +223,13 @@ describe("SPARQL worker", () => {
   });
 
   it("400s on an invalid query", async () => {
-    const response = await callWorker(new Request("https://example.com/sparql?query=NOT+SPARQL"));
+    const response = await callWorker(new Request("https://example.com/sparql/?query=NOT+SPARQL"));
 
     expect(response.status).toBe(400);
   });
 
   it("400s when no query is given", async () => {
-    const response = await callWorker(new Request("https://example.com/sparql"));
+    const response = await callWorker(new Request("https://example.com/sparql/"));
 
     expect(response.status).toBe(400);
   });
@@ -239,7 +239,7 @@ describe("SPARQL worker", () => {
       "SELECT ?namespace WHERE { GRAPH <https://example.com/sparql/.well-known/sparql-examples/> " +
       '{ ?d <http://www.w3.org/ns/shacl#prefix> "schema" ; <http://www.w3.org/ns/shacl#namespace> ?namespace } }';
     const response = await callWorker(
-      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+      new Request(`https://example.com/sparql/?query=${encodeURIComponent(query)}`),
     );
 
     const body = await response.json<{ results: { bindings: { namespace: { value: string } }[] } }>();
@@ -251,7 +251,7 @@ describe("SPARQL worker", () => {
       "SELECT ?namespace WHERE { ?d <http://www.w3.org/ns/shacl#prefix> \"schema\" ; " +
       "<http://www.w3.org/ns/shacl#namespace> ?namespace }";
     const response = await callWorker(
-      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+      new Request(`https://example.com/sparql/?query=${encodeURIComponent(query)}`),
     );
 
     const body = await response.json<{ results: { bindings: { namespace: { value: string } }[] } }>();
@@ -261,7 +261,7 @@ describe("SPARQL worker", () => {
   it("keeps to the dataset a query picks with FROM", async () => {
     const query = "SELECT (COUNT(*) AS ?count) FROM <https://example.org/nothing> WHERE { ?s ?p ?o }";
     const response = await callWorker(
-      new Request(`https://example.com/sparql?query=${encodeURIComponent(query)}`),
+      new Request(`https://example.com/sparql/?query=${encodeURIComponent(query)}`),
     );
 
     const body = await response.json<{ results: { bindings: { count: { value: string } }[] } }>();
@@ -274,7 +274,7 @@ describe("SPARQL worker", () => {
       // A distinct DATA_URL per call, so each loads its own store.
       const response = await worker.fetch!(
         new Request<unknown, IncomingRequestCfProperties>(
-          `https://example.com/sparql?query=${encodeURIComponent(query)}`,
+          `https://example.com/sparql/?query=${encodeURIComponent(query)}`,
         ),
         { ...TEST_ENV, ...env } as Env,
         createExecutionContext(),
@@ -284,6 +284,45 @@ describe("SPARQL worker", () => {
 
     expect(await ask({ DATA_URL: `${TEST_ENV.DATA_URL}%23on`, GENERATE_VOID: "" })).toBe(true);
     expect(await ask({ DATA_URL: `${TEST_ENV.DATA_URL}%23off`, GENERATE_VOID: "false" })).toBe(false);
+  });
+
+  describe("the slashless /sparql", () => {
+    it("redirects a GET to /sparql/ with 308, keeping the query string", async () => {
+      const response = await callWorker(new Request("https://example.com/sparql?query=ASK%7B%7D&x=1"));
+
+      expect(response.status).toBe(308);
+      expect(response.headers.get("Location")).toBe("/sparql/?query=ASK%7B%7D&x=1");
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    });
+
+    it("redirects a POST with 308, so a client resends it with its body", async () => {
+      const response = await callWorker(
+        new Request("https://example.com/sparql", {
+          method: "POST",
+          headers: { "Content-Type": "application/sparql-query" },
+          body: "ASK {}",
+        }),
+      );
+
+      expect(response.status).toBe(308);
+      expect(response.headers.get("Location")).toBe("/sparql/");
+    });
+
+    it("answers a query once a client follows the redirect", async () => {
+      const first = await callWorker(new Request("https://example.com/sparql?query=ASK%7B%3Fs%20%3Fp%20%3Fo%7D"));
+      const response = await callWorker(
+        new Request(new URL(first.headers.get("Location")!, "https://example.com/sparql")),
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ head: {}, boolean: true });
+    });
+
+    it("isn't redirected for a CORS preflight, which browsers won't follow", async () => {
+      const response = await callWorker(new Request("https://example.com/sparql", { method: "OPTIONS" }));
+
+      expect(response.status).toBe(200);
+    });
   });
 
   it("asks crawlers to stay out of /sparql", async () => {

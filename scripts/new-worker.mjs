@@ -49,7 +49,7 @@ Options:
   --accept <header>         Accept header to send when fetching <data-url>.
                             Default: asks for the format above
   --endpoint-url <url>      Public URL of the endpoint, e.g. behind a custom
-                            domain. Default: /sparql on the Worker's address
+                            domain. Default: /sparql/ on the Worker's address
   --editor-css <url>        Stylesheet for the SPARQL editor page, replacing
                             the minimal default
   --no-void                 Don't generate a VoID description of the data

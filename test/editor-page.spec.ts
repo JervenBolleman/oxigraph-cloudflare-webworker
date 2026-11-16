@@ -33,7 +33,7 @@ describe("acceptsHtml", () => {
 describe("editor page", () => {
   it("is what a browser gets from /sparql without a query", async () => {
     const response = await callWorker(
-      new Request("https://my-endpoint.example/sparql", { headers: { Accept: BROWSER_ACCEPT } }),
+      new Request("https://my-endpoint.example/sparql/", { headers: { Accept: BROWSER_ACCEPT } }),
     );
 
     expect(response.status).toBe(200);
@@ -41,14 +41,14 @@ describe("editor page", () => {
     expect(response.headers.get("Vary")).toBe("Accept");
     const html = await response.text();
     expect(html).toContain(`<script type="module" src="${EDITOR_SCRIPT}"></script>`);
-    expect(html).toContain('<sparql-editor endpoint="https://my-endpoint.example/sparql">');
+    expect(html).toContain('<sparql-editor endpoint="https://my-endpoint.example/sparql/">');
     expect(html).toContain("https://data.example/books.ttl");
     expect(html).toContain(`<style>${DEFAULT_CSS}</style>`);
   });
 
   it("is also what a browser gets for a POST without a query", async () => {
     const response = await callWorker(
-      new Request("https://my-endpoint.example/sparql", {
+      new Request("https://my-endpoint.example/sparql/", {
         method: "POST",
         headers: { Accept: BROWSER_ACCEPT },
       }),
@@ -59,7 +59,7 @@ describe("editor page", () => {
 
   it("points the editor at PUBLIC_ENDPOINT_URL when set", async () => {
     const response = await callWorker(
-      new Request("https://my-endpoint.example/sparql", { headers: { Accept: BROWSER_ACCEPT } }),
+      new Request("https://my-endpoint.example/sparql/", { headers: { Accept: BROWSER_ACCEPT } }),
       { PUBLIC_ENDPOINT_URL: "https://sparql.example.org/sparql" },
     );
 
@@ -68,7 +68,7 @@ describe("editor page", () => {
 
   it("swaps the default CSS for EDITOR_CSS_URL", async () => {
     const response = await callWorker(
-      new Request("https://my-endpoint.example/sparql", { headers: { Accept: BROWSER_ACCEPT } }),
+      new Request("https://my-endpoint.example/sparql/", { headers: { Accept: BROWSER_ACCEPT } }),
       { EDITOR_CSS_URL: "https://style.example/a.css?x=1&y=2" },
     );
 
@@ -79,7 +79,7 @@ describe("editor page", () => {
 
   it("escapes the data URL", async () => {
     const response = await callWorker(
-      new Request("https://my-endpoint.example/sparql", { headers: { Accept: BROWSER_ACCEPT } }),
+      new Request("https://my-endpoint.example/sparql/", { headers: { Accept: BROWSER_ACCEPT } }),
       { DATA_URL: 'https://data.example/"><script>alert(1)</script>' },
     );
 
@@ -96,12 +96,12 @@ describe("editor page", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
     expect(response.headers.get("Vary")).toBeNull();
-    expect(await response.text()).toContain('<sparql-editor endpoint="https://my-endpoint.example/sparql">');
+    expect(await response.text()).toContain('<sparql-editor endpoint="https://my-endpoint.example/sparql/">');
   });
 
   it("isn't served to a client that doesn't ask for HTML", async () => {
     const response = await callWorker(
-      new Request("https://my-endpoint.example/sparql", { headers: { Accept: "*/*" } }),
+      new Request("https://my-endpoint.example/sparql/", { headers: { Accept: "*/*" } }),
     );
 
     expect(response.status).toBe(400);

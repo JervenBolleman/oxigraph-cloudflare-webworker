@@ -23,7 +23,7 @@ const TEST_ENV = {
 
 async function query(sparql: string) {
   const request = new Request<unknown, IncomingRequestCfProperties>(
-    `https://example.com/sparql?query=${encodeURIComponent(sparql)}`,
+    `https://example.com/sparql/?query=${encodeURIComponent(sparql)}`,
   );
   const ctx = createExecutionContext();
   const response = await worker.fetch!(request, TEST_ENV, ctx);

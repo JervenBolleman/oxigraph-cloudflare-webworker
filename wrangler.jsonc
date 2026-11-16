@@ -18,10 +18,10 @@
     // format above.
     "DATA_ACCEPT": "",
     // Public URL of this SPARQL endpoint, as people query it, e.g.
-    // "https://sparql.example.org/sparql" behind a custom domain. The query
+    // "https://sparql.example.org/sparql/" behind a custom domain. The query
     // editor queries it, and the prefixes declared in a Turtle, TriG, N3 or
     // RDF/XML data file go in the graph <PUBLIC_ENDPOINT_URL/.well-known/
-    // sparql-examples/>. Leave empty for /sparql on the address the Worker
+    // sparql-examples/>. Leave empty for /sparql/ on the address the Worker
     // is reached at.
     "PUBLIC_ENDPOINT_URL": "",
     // Set to "false" to skip the VoID description of the data that the
@@ -29,7 +29,7 @@
     // CPU time on every cold start. Leave empty to generate it.
     "GENERATE_VOID": "",
     // URL of a stylesheet for the SPARQL editor page that browsers get from
-    // /sparql without a query. Replaces the minimal default CSS (see
+    // /sparql/ without a query. Replaces the minimal default CSS (see
     // src/editor-page.ts). Leave empty to keep the default.
     "EDITOR_CSS_URL": ""
   }
