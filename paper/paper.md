@@ -93,16 +93,19 @@ To generate a nice-looking URI for the SPARQL endpoint see the documentation at 
 # Limitations
 
 This approach is limited by the generosity of Cloudflare and the limits they set on their Workers.
-In practical terms that means ontologies larger than 50 MB will not work in the free tier.
+In practical terms that means ontologies larger than 20 MB are unlikely to work in the free tier.
+It is important to note that is the uncompressed size of the file.
+# Tried ChEBI.owl.gz at 44MB compressed failed, the 8.5 MB rhea.rdf.gz also failed
+If trying a file that is to large an error message will be returned "Failed to load the RDF dataset: Memory limit exceeded before EOF." with an HTTP error code 502.
 A key limitation is that the query answering (including the data fetch when cold starting a Worker isolate) must happen within 10 ms per request.
-Experimentally it seems that this is doable for ontologies stored on GitHub Pages and simple queries, as demonstrated in listing 1.
+Experimentally it seems that this is doable for ontologies stored as static download artifacts and simple queries, as demonstrated in listing 1.
 
 -----------------------------------------------------------------------------------------------------------------
 
 ```sh
 # querying the edam ontology via the proposed Cloudflare worker
 
-curl 'https://edam.jerven-bolleman.workers.dev/sparql' \
+curl 'https://edam.jerven-bolleman.workers.dev/sparql/' \
   -G \
   --data-urlencode \
   'query=SELECT * WHERE { ?s a <http://www.w3.org/2002/07/owl#Class> } LIMIT 10'
@@ -117,8 +120,9 @@ Listing 1: Simple query to list the first 10 found classes in the EDAM ontology
 
 Ontologies or RDF data in JSON-LD with a large number of remote `@context` declarations are also unlikely to be successful.
 In practice these endpoints are also limited to 100,000 requests per day, which should be sufficient for many use cases.
-
+The examples in this paper run on the free plan.
 These limits are significantly more generous if using a paid Cloudflare account.
+
 While the same approach can be used in other infrastructure, this specific code is limited to the Cloudflare ecosystem.
 
 # Discussion
@@ -137,6 +141,7 @@ SELECT DISTINCT ?sub WHERE {
     ?sub rdfs:subClassOf+ <http://purl.obolibrary.org/obo/ECO_0000006> .
   }
   ?thing up:evidence ?sub .
+}
 ```
 
 -------------------------------------------------------------------------
@@ -144,6 +149,10 @@ SELECT DISTINCT ?sub WHERE {
 Listing 2: Querying which experimental ECO codes are used in UniProt
 
 -------------------------------------------------------------------------
+
+This shows that UniProt returned 10 experimental ECO codes in about 8 seconds.
+The ECO at the time of writing has 1,857 descendants of ECO_0000006.
+The benefit here is that the user of the UniProt SPARQL endpoint can use the full capabalities of the ECO data-model, even while ECO is not fully loaded into UniProt.
 
 # Conclusion
 
