@@ -358,8 +358,15 @@ Turtle and RDF/XML, and the SHACL declarations made from them.
 ## Deploy
 
 ```sh
-npm run deploy
+npm run deploy                                # wrangler.jsonc
+npm run deploy -- -c workers/<name>.jsonc     # a named Worker
 ```
+
+Note the `--`: without it npm takes `-c` as its own option, and wrangler
+never sees the config. `npm run deploy` (`scripts/deploy.mjs`) refuses to
+deploy while the config's `DATA_URL` is still the `example.com`
+placeholder, and says so when that's because npm swallowed the `-c`.
+Otherwise it passes all its arguments on to `wrangler deploy`.
 
 By default this runs against whatever account `wrangler login` last
 authenticated — an OAuth grant that covers every Cloudflare product on the
