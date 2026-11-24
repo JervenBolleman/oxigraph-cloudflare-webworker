@@ -15,9 +15,6 @@ authors:
   - name: Nishad Thalhath
     affiliation: 2
     orcid: 0000-0001-9845-9714
-  - name: Nicole Redaschi
-    affiliation: 1
-    orcid: 0000-0001-8890-2268
 affiliations:
   - name: Swiss-Prot group, SIB Swiss Institute of Bioinformatics, Geneva, Switzerland
     index: 1
