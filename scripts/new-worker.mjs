@@ -156,6 +156,8 @@ const config = {
   name,
   main: "../src/index.ts",
   compatibility_date: compatibilityDate,
+  // Its deployment time, for the Last-Modified of query results.
+  version_metadata: { binding: "CF_VERSION_METADATA" },
   vars: {
     DATA_URL: url.href,
     DATA_FORMAT: dataFormat,

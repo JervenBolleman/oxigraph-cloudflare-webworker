@@ -43,6 +43,47 @@ export interface DataSource {
 
 let cached: { key: string; store: Promise<Store> } | undefined;
 
+interface DataFreshness {
+  // When the data last changed: the data file's Last-Modified, or when it
+  // was fetched if the server didn't say.
+  lastModified: Date;
+  // Until when the data file's server lets caches reuse it without asking,
+  // if it said.
+  expires?: Date;
+}
+
+const freshness = new WeakMap<Store, DataFreshness>();
+
+export function lastModified(store: Store): Date | undefined {
+  return freshness.get(store)?.lastModified;
+}
+
+export function expires(store: Store): Date | undefined {
+  return freshness.get(store)?.expires;
+}
+
+// When a response fetched at `fetchedAt` stops being fresh, by its
+// Cache-Control max-age (less the Age it already had in caches on the way),
+// or else its Expires counted from its Date. Undefined when it may not be
+// reused without asking (no-store, no-cache) or says nothing.
+function freshUntil(response: Response, fetchedAt: Date): Date | undefined {
+  const cacheControl = response.headers.get("Cache-Control")?.toLowerCase() ?? "";
+  if (/\b(no-store|no-cache)\b/.test(cacheControl)) {
+    return undefined;
+  }
+  const maxAge = cacheControl.match(/(?:^|[,\s])max-age\s*=\s*"?(\d+)/)?.[1];
+  if (maxAge !== undefined) {
+    const age = Number.parseInt(response.headers.get("Age") ?? "0", 10) || 0;
+    return new Date(fetchedAt.getTime() + (Number(maxAge) - age) * 1000);
+  }
+  const expiresAt = Date.parse(response.headers.get("Expires") ?? "");
+  if (!Number.isNaN(expiresAt)) {
+    const date = Date.parse(response.headers.get("Date") ?? "");
+    return new Date(fetchedAt.getTime() + expiresAt - (Number.isNaN(date) ? fetchedAt.getTime() : date));
+  }
+  return undefined;
+}
+
 // Loads the configured data file into an in-memory Store once per Worker
 // isolate, then reuses it for every subsequent request that isolate handles.
 // With an `endpointUrl` (the endpoint's public URL), the prefixes the file
@@ -99,6 +140,7 @@ async function loadStore(
   const expected = format ?? formatFromUrl(url);
   const defaultAccept = expected ? `${expected}, */*;q=0.1` : ANY_FORMAT_ACCEPT;
 
+  const fetchedAt = new Date();
   const response = await fetch(url, { headers: { Accept: accept ?? defaultAccept } });
   if (!response.ok) {
     throw new Error(`Failed to fetch RDF data from ${url}: ${response.status} ${response.statusText}`);
@@ -121,6 +163,11 @@ async function loadStore(
   }
 
   const store = new Store();
+  const modified = Date.parse(response.headers.get("Last-Modified") ?? "");
+  freshness.set(store, {
+    lastModified: Number.isNaN(modified) ? fetchedAt : new Date(modified),
+    expires: freshUntil(response, fetchedAt),
+  });
   store.load(data, { format: resolved, base_iri: url });
   if (endpointUrl) {
     // Described before anything else is added, so it covers only the data.

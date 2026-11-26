@@ -277,6 +277,39 @@ after loading, modelled on
   `--no-void` to `npm run new-worker`. The editor still works without it,
   with less autocomplete.
 
+## Caching
+
+Query results come with headers that let browsers and caches reuse them
+safely:
+
+- `Last-Modified` is the later of the data file's own `Last-Modified` (or,
+  if its server sends none, when the Worker fetched it) and when the
+  deployed version was created, from the `version_metadata` binding. So
+  both new data and new code count as a change.
+- A `GET` or `HEAD` with `If-Modified-Since` at or after that time gets a
+  `304 Not Modified` without the query being run. `POST` requests ignore
+  `If-Modified-Since`, as RFC 9110 requires.
+- `Cache-Control` passes on the data file's cache lifetime: if its server
+  said it may be reused for a while (`max-age`, less any `Age`, or
+  `Expires`), results get `max-age` for what is left of that. Otherwise,
+  or once it has run out, results get `no-cache`: caches may keep them but
+  must revalidate, which costs a cheap `304`.
+- `Vary: Accept` is on every response from `/sparql/`, since the `Accept`
+  header picks the results format, and whether a browser gets the editor.
+
+The Worker keeps its copy of the data for as long as the isolate lives,
+also after the data file's lifetime runs out. The headers describe that
+copy.
+
+The binding is declared in `wrangler.jsonc`, and in every config that
+`npm run new-worker` writes:
+
+```jsonc
+"version_metadata": { "binding": "CF_VERSION_METADATA" },
+```
+
+Without it, `Last-Modified` comes from the data file alone.
+
 ## Create a new named Worker
 
 One command names, configures and creates a new endpoint Worker:
