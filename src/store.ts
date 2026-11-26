@@ -116,9 +116,16 @@ function cacheHeaders(headers: Headers): Headers {
   return kept;
 }
 
+// Whether to ask the data file's server if `store`'s data changed: its
+// lifetime is over, and there is a validator (ETag or Last-Modified) to ask
+// with. Without one, the server can't answer 304, and every check would be
+// a full download, so such data is kept for the life of the isolate.
 function isStale(store: Store): boolean {
-  const until = freshness.get(store)?.expires;
-  return until !== undefined && until.getTime() <= Date.now();
+  const known = freshness.get(store);
+  if (!known?.expires || (!known.headers.has("ETag") && !known.headers.has("Last-Modified"))) {
+    return false;
+  }
+  return known.expires.getTime() <= Date.now();
 }
 
 // Loads the configured data file into an in-memory Store once per Worker

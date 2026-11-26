@@ -314,8 +314,10 @@ the server gave:
 
 Queries that arrive meanwhile wait for the same check. A data file served
 with `no-cache` (or `no-store`) is asked about before every query. One
-served without any lifetime (no `max-age` or `Expires`) is kept for as
-long as the isolate lives, as before.
+served without any lifetime (no `max-age` or `Expires`), or without an
+`ETag` or `Last-Modified` to ask with, is kept for as long as the isolate
+lives: without a validator its server can't answer `304`, and every check
+would be a full download.
 
 The binding is declared in `wrangler.jsonc`, and in every config that
 `npm run new-worker` writes:

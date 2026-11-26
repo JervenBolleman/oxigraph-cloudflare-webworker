@@ -87,7 +87,7 @@ describe("refetching the data file at cache expiry", () => {
   });
 
   it("keeps serving the data it has when asking fails, and waits before asking again", async () => {
-    const requests = serve(ok(ALICE, { "Cache-Control": "max-age=0" }), () => {
+    const requests = serve(ok(ALICE, { "Cache-Control": "max-age=0", ETag: '"v1"' }), () => {
       throw new Error("network down");
     });
     const data = source();
@@ -96,6 +96,30 @@ describe("refetching the data file at cache expiry", () => {
     expect(await getStore(data)).toBe(first);
     expect(await getStore(data)).toBe(first);
     expect(requests).toHaveLength(2);
+  });
+
+  it("never asks again about a file without an ETag or Last-Modified to ask with", async () => {
+    const requests = serve(ok(ALICE, { "Cache-Control": "max-age=0" }));
+    const data = source();
+
+    const first = await getStore(data);
+    expect(await getStore(data)).toBe(first);
+    expect(await getStore(data)).toBe(first);
+    expect(requests).toHaveLength(1);
+  });
+
+  it("asks with Last-Modified alone when there's no ETag", async () => {
+    const requests = serve(
+      ok(ALICE, { "Cache-Control": "max-age=0", "Last-Modified": "Wed, 25 Nov 2026 10:00:00 GMT" }),
+      notModified(),
+    );
+    const data = source();
+
+    await getStore(data);
+    await getStore(data);
+    expect(requests).toHaveLength(2);
+    expect(requests[1].headers.get("If-Modified-Since")).toBe("Wed, 25 Nov 2026 10:00:00 GMT");
+    expect(requests[1].headers.has("If-None-Match")).toBe(false);
   });
 
   it("never asks again about a file without a cache lifetime", async () => {
