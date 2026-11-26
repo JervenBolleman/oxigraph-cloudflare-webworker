@@ -297,9 +297,25 @@ safely:
 - `Vary: Accept` is on every response from `/sparql/`, since the `Accept`
   header picks the results format, and whether a browser gets the editor.
 
-The Worker keeps its copy of the data for as long as the isolate lives,
-also after the data file's lifetime runs out. The headers describe that
-copy.
+Once the data file's lifetime runs out, the next query first asks the
+data file's server whether it changed. It sends `If-None-Match` with the
+file's `ETag` and `If-Modified-Since` with its `Last-Modified`, whichever
+the server gave:
+
+- **`304 Not Modified`:** the Worker keeps its copy, and the 304's headers
+  renew its lifetime (over the ones received before, as RFC 9111
+  describes). Only the conditional request is paid for, not a new download
+  or parse.
+- **New data:** it is loaded like on a cold start, and replaces the copy.
+  While it loads, the old and new copies are both in memory, so a file
+  near the 128 MB memory limit may not fit twice.
+- **Failure:** the Worker keeps answering from its copy, and asks again a
+  minute later.
+
+Queries that arrive meanwhile wait for the same check. A data file served
+with `no-cache` (or `no-store`) is asked about before every query. One
+served without any lifetime (no `max-age` or `Expires`) is kept for as
+long as the isolate lives, as before.
 
 The binding is declared in `wrangler.jsonc`, and in every config that
 `npm run new-worker` writes:
